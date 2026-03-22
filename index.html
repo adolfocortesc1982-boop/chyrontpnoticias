@@ -326,9 +326,22 @@ function firebaseInitReporte(){
   _fbDb.ref('tp_reporte').on('value',function(snap){
     var data=snap.val();
     if(!data||!Array.isArray(data)) return;
-    localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
+    // Deduplicate: keep only first occurrence of each archivo+tipo combo
+    var seen={};
+    var deduped=data.filter(function(r){
+      var key=r.archivo+'|'+(r.tipo||'')+'|'+(r.nota||'');
+      // For bannerqr, use only archivo as key (nota can be number or string)
+      if(r.tipo==='bannerqr') key=r.archivo+'|bannerqr';
+      if(seen[key]) return false;
+      seen[key]=true;
+      return true;
+    });
+    localStorage.setItem(REPORTE_KEY,JSON.stringify(deduped));
+    // If deduped differs from original, clean up Firebase too
+    if(deduped.length!==data.length&&_fbDb){
+      _fbDb.ref('tp_reporte').set(deduped);
+    }
     updateReporteBadge();
-    // Re-render reporte page if currently viewing it
     if(currentUser&&currentPage==='reporte'){
       var c=document.getElementById('mainContent');
       if(c) c.innerHTML=renderReporte();
