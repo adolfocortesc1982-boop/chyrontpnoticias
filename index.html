@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chyron Prime — TP Noticias</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --tp-teal:#009DB5;--tp-teal-d:#007a8e;--tp-teal-l:#33b8cc;
+  --tp-red:#E63950;--tp-green:#5CB85C;--tp-yellow:#F5A623;
+}
+:root,[data-theme="dark"]{
+  --bg:#06101a;--s1:#0b1929;--s2:#0f2035;--s3:#152840;
+  --border:#1c3350;--border2:#244267;--accent:#009DB5;--accent2:#33b8cc;
+  --text:#e0eaf6;--text2:#7aa4c0;--text3:#3d6480;
+  --green:#5CB85C;--red:#E63950;--card-glow:rgba(0,157,181,.07);
+}
+[data-theme="light"]{
+  --bg:#eef4f8;--s1:#ffffff;--s2:#f0f6fa;--s3:#deeaf2;
+  --border:#c8dde9;--border2:#aacbdb;--accent:#007a8e;--accent2:#009DB5;
+  --text:#071520;--text2:#2e6070;--text3:#6a98ab;
+  --green:#3a8f3a;--red:#c42038;--card-glow:rgba(0,122,142,.06);
+}
+body,header,nav,.content,.file-card,.note-card,
+.f-input,.f-select,.cfg-input,.edit-panel,
+.btn-gen,.btn-clear,.btn-add,.hdr-btn,.nav-btn,
+.credit-row,.info-card,.toast,#loginOverlay>div,
+#adminOverlay>div,.scene-badge{
+  transition:background-color .3s ease,border-color .3s ease,color .2s ease,box-shadow .3s ease !important;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px;background:var(--s1);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:200;box-shadow:0 2px 20px rgba(0,0,0,.18);}
+[data-theme="light"] header{box-shadow:0 2px 16px rgba(0,157,181,.15);}
+.logo{display:flex;align-items:center;gap:0;}
+.logo-sub{font-size:13px;color:var(--text2);letter-spacing:1.4px;text-transform:uppercase;margin-left:16px;border-left:1px solid var(--border2);padding-left:16px;font-weight:500;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.theme-switch{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border2);border-radius:22px;padding:5px 12px 5px 6px;cursor:pointer;user-select:none;}
+.theme-switch:hover{border-color:var(--accent);}
+.theme-track{width:34px;height:18px;border-radius:9px;background:var(--s3);border:1px solid var(--border2);position:relative;flex-shrink:0;transition:background .3s,border-color .3s !important;}
+[data-theme="light"] .theme-track{background:var(--accent);border-color:var(--accent);}
+.theme-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--text3);transition:transform .28s cubic-bezier(.34,1.56,.64,1),background .25s !important;}
+[data-theme="light"] .theme-thumb{transform:translateX(16px);background:#fff;}
+.theme-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.5px;}
+.hdr-btn{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:6px 13px;color:var(--text2);font-family:'DM Sans';font-size:12px;font-weight:600;cursor:pointer;}
+.hdr-btn:hover{border-color:var(--accent);color:var(--accent);}
+.hdr-btn:disabled{opacity:.32;cursor:not-allowed;}
+.hdr-btn-gold{background:rgba(0,157,181,.1);border-color:rgba(0,157,181,.35);color:var(--accent2);}
+.hdr-btn-gold:hover{background:rgba(0,157,181,.2);border-color:var(--accent);}
+[data-theme="light"] .hdr-btn-gold{background:rgba(0,122,142,.1);border-color:rgba(0,122,142,.35);color:var(--accent);}
+.hdr-count{min-width:20px;height:20px;padding:0 5px;background:var(--s3);border-radius:10px;font-family:'DM Mono';font-size:10px;display:flex;align-items:center;justify-content:center;color:var(--text3);}
+.hdr-btn-gold .hdr-count{background:rgba(0,157,181,.2);color:var(--accent2);}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(92,184,92,.1);border:1px solid rgba(92,184,92,.3);border-radius:20px;padding:5px 13px;font-size:11px;color:var(--green);font-weight:600;}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.app{display:grid;grid-template-columns:256px 1fr;min-height:calc(100vh - 60px);}
+nav{background:var(--s1);border-right:1px solid var(--border);padding:18px 12px;display:flex;flex-direction:column;gap:3px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+[data-theme="light"] nav{box-shadow:2px 0 12px rgba(0,157,181,.06);}
+.nav-section-title{font-size:9.5px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);padding:14px 10px 6px;}
+.nav-btn{display:flex;align-items:center;gap:10px;background:transparent;border:none;border-left:2px solid transparent;border-radius:0 8px 8px 0;padding:10px 12px;width:100%;text-align:left;cursor:pointer;color:var(--text2);font-family:'DM Sans';font-size:13px;font-weight:500;}
+.nav-btn:hover{background:var(--s2);color:var(--text);}
+.nav-btn.active{background:linear-gradient(90deg,rgba(0,157,181,.15) 0%,rgba(0,157,181,.03) 100%);color:var(--accent2);border-left-color:var(--accent);}
+[data-theme="light"] .nav-btn.active{background:linear-gradient(90deg,rgba(0,122,142,.12) 0%,rgba(0,122,142,.02) 100%);color:var(--accent);border-left-color:var(--accent);}
+.nav-btn .nav-badge{font-family:'DM Mono';font-size:10px;background:var(--s3);border:1px solid var(--border2);padding:1px 7px;border-radius:4px;color:var(--text3);margin-left:auto;}
+.nav-btn.active .nav-badge{background:rgba(0,157,181,.15);color:var(--accent2);border-color:rgba(0,157,181,.3);}
+.nav-divider{height:1px;background:var(--border);margin:8px 0;}
+.cfg-label{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+.cfg-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'DM Mono';font-size:11px;outline:none;margin-bottom:10px;}
+.cfg-input:focus{border-color:var(--accent);}
+.content{padding:28px 32px;display:flex;flex-direction:column;gap:22px;overflow-y:auto;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;}
+.page-title{font-family:'Bebas Neue';font-size:32px;letter-spacing:2px;line-height:1;color:var(--text);}
+[data-theme="dark"] .page-title{background:linear-gradient(90deg,var(--text) 40%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.page-meta{font-size:12px;color:var(--text2);margin-top:4px;}
+.scene-badge{font-family:'DM Mono';font-size:11px;color:var(--accent2);background:rgba(0,157,181,.1);border:1px solid rgba(0,157,181,.25);border-radius:6px;padding:6px 12px;white-space:nowrap;}
+[data-theme="light"] .scene-badge{color:var(--accent);background:rgba(0,122,142,.08);border-color:rgba(0,122,142,.25);}
+.form-block{display:flex;flex-direction:column;gap:14px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.cols1{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.f-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.f-id{font-family:'DM Mono';background:var(--s3);border:1px solid var(--border2);padding:1px 6px;border-radius:3px;color:var(--accent);font-size:9px;text-transform:none;letter-spacing:.3px;}
+.f-input{background:var(--s2);border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:'DM Sans';font-size:13px;font-weight:500;outline:none;text-transform:uppercase;}
+.f-input::placeholder{color:var(--text3);text-transform:none;font-weight:400;font-style:italic;}
+.f-input:focus{border-color:var(--accent);background:var(--card-glow);box-shadow:0 0 0 3px rgba(0,157,181,.12);}
+[data-theme="light"] .f-input:focus{box-shadow:0 0 0 3px rgba(0,122,142,.1);}
+.f-input.path{text-transform:none;font-family:'DM Mono';font-size:11px;}
+.f-select{background:var(--s2);border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:'DM Sans';font-size:13px;font-weight:500;outline:none;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23009DB5' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.f-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,157,181,.1);}
+.f-select option{background:var(--s2);}
+.credits-wrap{display:flex;flex-direction:column;gap:10px;}
+.credits-hdr{display:flex;align-items:center;justify-content:space-between;}
+.section-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
+.credit-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.credit-row .f-input{background:var(--s1);border-radius:7px;padding:9px 11px;font-size:12px;}
+.actions-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.btn-gen{display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:12px 26px;font-family:'DM Sans';font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 16px rgba(0,157,181,.3);}
+.btn-gen:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,157,181,.45);}
+.btn-gen:active{transform:translateY(0);}
+.btn-clear{display:flex;align-items:center;gap:7px;background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:9px;padding:11px 20px;font-family:'DM Sans';font-size:13px;font-weight:500;cursor:pointer;}
+.btn-clear:hover{border-color:var(--text2);color:var(--text);}
+.btn-add{display:flex;align-items:center;gap:6px;background:transparent;border:1.5px dashed var(--border2);border-radius:8px;padding:6px 14px;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans';}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);}
+.btn-rm{width:30px;height:30px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.btn-rm:hover{border-color:var(--red);color:var(--red);}
+.files-section{display:flex;flex-direction:column;gap:10px;}
+.files-hdr{display:flex;align-items:center;justify-content:space-between;}
+.file-card{display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;animation:fadeIn .2s ease;}
+.file-card.ok{border-color:rgba(0,157,181,.3);background:rgba(0,157,181,.04);}
+.file-card.ok:hover{border-color:rgba(0,157,181,.55);}
+[data-theme="light"] .file-card.ok{border-color:rgba(0,122,142,.28);background:rgba(0,122,142,.04);}
+.file-info{display:flex;align-items:center;gap:12px;}
+.file-ico{width:36px;height:36px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.file-name{font-family:'DM Mono';font-size:13px;font-weight:500;color:var(--accent2);}
+[data-theme="light"] .file-name{color:var(--accent);}
+.file-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+.file-btns{display:flex;gap:7px;}
+.btn-sm{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border2);border-radius:6px;padding:6px 11px;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans';}
+.btn-sm:hover{border-color:var(--text);color:var(--text);}
+.btn-sm.dl:hover{border-color:var(--green);color:var(--green);}
+.edit-panel{background:var(--s2);border:1.5px solid rgba(0,157,181,.3);border-radius:10px;padding:18px 20px;margin-bottom:10px;animation:fadeIn .18s ease;}
+.edit-panel-title{font-size:12px;color:var(--text2);margin-bottom:14px;}
+.edit-panel-title strong{color:var(--accent2);}
+[data-theme="light"] .edit-panel-title strong{color:var(--accent);}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.edit-field{display:flex;flex-direction:column;gap:5px;}
+.edit-field.full{grid-column:1/-1;}
+.edit-panel-actions{display:flex;gap:10px;}
+.preview-xml{background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:14px 16px;font-family:'DM Mono';font-size:11px;line-height:1.8;white-space:pre;overflow-x:auto;color:var(--text2);margin-bottom:10px;}
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
+.note-card{background:var(--s2);border:1.5px solid var(--border);border-radius:9px;padding:12px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;}
+.note-card:hover{border-color:var(--accent);color:var(--accent2);}
+.note-card.active{border-color:var(--accent);background:rgba(0,157,181,.1);color:var(--accent2);}
+[data-theme="light"] .note-card.active{background:rgba(0,122,142,.1);color:var(--accent);}
+.tabs{display:flex;gap:4px;background:var(--s2);padding:4px;border-radius:10px;width:fit-content;}
+.tab-btn{padding:7px 18px;border-radius:7px;border:none;background:transparent;font-family:'DM Sans';font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);}
+.tab-btn.active{background:var(--s3);color:var(--accent);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s1);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.35);transform:translateY(60px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1) !important;z-index:999;}
+.toast.show{transform:translateY(0);opacity:1;}
+.divider{height:1px;background:var(--border);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-ico{font-size:36px;margin-bottom:10px;}
+.empty-state p{font-size:12px;line-height:1.7;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+.admin-tab{padding:12px 18px;border:none;background:transparent;font-family:'DM Sans';font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.admin-tab:hover{color:var(--text2);}
+.admin-tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+[data-theme="light"] .admin-tab.active{color:var(--accent);}
+.user-row{background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;animation:fadeIn .18s ease;}
+.user-row-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;}
+.user-row-head:hover{background:var(--s3);}
+.user-row-body{display:none;padding:14px 16px;border-top:1px solid var(--border);background:var(--s1);}
+.user-row-body.open{display:block;}
+</style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA20AAARVCAYAAAAufCiEAAAACXBIWXMAABcRAAAXEQHKJvM/AAAgAElEQVR4nOzd7XUa1/r+8StZ5734V6BJBSYVaFKBSQUeV2C5AuMKLFdgXEGkCjKqIKKCQAU/UYH/L24mIAxigJm598P3sxbLOefkWLd42OxrP/7y48cPAQAQgZGksaRSUrF+jCS9afH/XUpaSHqW9LT1WHRdJAAAXfuF0AYACNRI0kQW0kpJ1z38jJWkev24FyEOABAgQhsAICRNULtVuxm0rs0lzUSAAwAEhNAGAAhBKamS9M63jBceZQFu5lsGACB3hDYAgKdKfrNqbS1lwe1OticOAIBBEdoAAB4qSVP1s0+tLytZcJs61wEAyAyhDQAwpLEs+Nx4F3KBpWx28N67EABAHn71LgAAkIWRLKz9o7gDm2Szg3/JQlvhWwoAIAfMtAEA+lbK9oTFtBSyrZVs1m3mXAcAIGHMtAEA+jSV9LfSDGySdCXpm2zWbeRcCwAgUcy0AQD6MJIFmdiXQp5iLjtg5cm5DgBAYphpAwB0bSypVl6BTbJrC2rZclAAADrDTBsAoEtNYLtyrsPbe7HPDQDQEWbaAABdIbBtfJMtlQQA4GKENgBAFwhsPyO4AQA6QWgDAFyKwHYYwQ0AcDH2tAEALlHITksksL3uD1mwBQDgZMy0AQDO1RzrT2A77l42IwkAwMkIbQCAc81kx9zjuCvZ88UF3ACAkxHaAADnuJX01ruIyLwR1wAAAM7AnjYAwKnGkv7xLiJiHyXdeRcBAIgHoQ0AcKonsSzyEitZ8F041wEAiATLIwEAp5iKwHapZn8bAACtMNMGAGirkPSvdxEJ+VN2qiQAAK9ipg0A0NbMu4DE3InTJAEALRDaAABtlJJuvItIzLXsFE4AAF7F8kgAQBu1CG19WMmWnT471wEACBgzbQCAY0oR2PpyJWbbAABHMNMGADimFqGtTyuxtw0A8Apm2gAArxmLwNa3K0mVdxEAgHAR2gAAr2Hp3jB4ngEAB7E8EgDwmmfZTBD697ukJ+8iAADhYaYNAHDIRAS2IVXeBQAAwkRoAwAcMvEuIDM83wCAvVgeCQA4hKWRw2OJJADgJ8y0AQD2KUVg81B6FwAACA+hDQCwT+ldQKZYIgkA+AmhDQCwT+ldQKa4Ew8A8BP2tAEA9uHLwQ/72gAALzDTBgDYNfYuIHM8/wCAFwhtAIBdhXcBmSu8CwAAhIXQBgDYxUyPr9K7AABAWAhtAIBdhXcBmRt5FwAACAuhDQCwq/AuIHNvvAsAAISF0AYAAAAAIBO0AQB2safNH0skAQD/IbQBAHZdeRcAgjMAYIPQBgAAAAABI7QBAAAAQMAIbQAAAAAQMEIbAAAAAASM0AYA2LXyLgB68i4AABAOQhsAYBeBwd+zdwEAgHAQ2gAAAAAgYIQ2AMCuhXcBmZt7FwAACAuhDQCwa+FdQOZYGgkAeIHQBgDYxZ42X7V3AQCAsBDaAAC7Ft4FZG7hXQAAICyENgDALmbafPH8AwBeILQBAPZ59C4gY4Q2AMALhDYAwD61dwGZIiwDAH5CaAMA7FN7F5Cpe+8CAADh+eXHjx/eNQBAWyNJY0nFzkOSbk74e5rZjGfZUrTF+vEkjlvf9izpyruIzPwulkfuU+jnz/xY1iYcs9DmcJfmM85nHUBUCG0AQlauH+P143qAn7mSdejq9SPnzt1M0jvvIjKy1CaQ5KzU5nNfSHrT48961GbgphaBGUCgCG0AQjKWNJF12E6ZOevbXLZs7V55deomkv7yLiIjXyXdehfhoPnMl+o3oLX1KPus18rr8w4gYIQ2AN4mW48YluKttAlwOew/YonkcH5THne0jbT5zL91ruWY3D7vAAJFaAPgoZDNKEw0zJLHvqxkSwhnSndE/k7SB+8iMjCXzTSnrFIcQe2QJsDdKd3PO4BAEdoADKlaP0Ja+tiVR20CXEoKSf96F5GA90rvvSNtBmgqpTVju5SFt5ny3fMKYECENgB9a5ZCTRX3rFpbS1lH7k7pdOZqpRm0Q7FSu1MQY1LKwlqss2ptNbPtd8pjaSsAJ4Q2AH0ZyTptt0prhL2tlawjl0J4KyX97V1Ewj7LBjVSUMp+lxxD/nfZ777wLQNArintAPoQKZ+ZtWNWsufizrmOS9XKsyPet5VsCWEKwX4q3iOShbdbxf+aAgjIr94FAEhKKdug/00EtsaVpC+y0ffStZLLTL0LSFTsM7GFbHng3yKwNd7JPu9T3zIApISZNgBdGMk6n1zEfNyDbBR+4VzHOe6V/h6lIcV+mfZU+S5/bmspW3lQ+5YBIHaENgCXmshG2um4tRfrkslCNpPKa92NPxXn3V9j2Wc+hIuwY/EgC28xz6oCcMTySADnGsk6nH+JTvypmiWTteI6NXCh+IJmqB4UZ2CbSvpHBLZTvZV9fibOdQCIFDNtAM5RyjqchLXLrWQj8DF14J9Ep/0SK9ls1cK5jlMwu9YdDioBcDJm2gCcaio7dIDA1o0r2WxlTDNYlXcBkasUV2CrZLPCBLZuvJM9n2PnOgBEhNAGoK1mOeQn70IS9UHxLJd8kvTRu4hIfVdcs6p3stNgGaTp1hvZ573yLQNALFgeCaANlkYNZyna9/LkXUgLM3Fi6CnmsqXFMSyLawZpOMa/fyldrg6gJ4Q2AMeMZSPCjLQPZ6XNnXchG4llc23FtI+NQZrhfRezbgBeQWgD8BqO8/f1Xvb8h2wkCyK8R173u8IP4RKDNJ5imokFMDD2tAE4pBLH+Xv7pvBH359lHc2Vcx0hey8CG45r9rnFsK8VwMAIbQD2qWSBAf5iCG5PIrgdEsNsqURgCwXBDcBehDYAuyoR2EJDcIsTgQ3nILgB+Al72gBsK2V3sCFMMYQAAoAF11uF/1pJvF4hY48bgP8Q2gA06LzFIYYDLXI+VTKWkz8lPvMxmItLuAGI5ZEATCE6b7GoFX4nrjmc5MG5jqE1HewYAltzDxuf+bC9URwztgB6RmgDQOctLleyTlzo+12eZVdGfPQuZCBfZUF14VtGK81M6LVzHWjnnaQ77yIA+GJ5JIB7Se+9i8DJHmUhIQYpX9a8kh0Sc+9cxylmsiCAuMSwpxVAT5hpA/I2FYEtVjey1y8GT7Lg9tm7kI49yJYWxxTYbkVgi9Wdwl8aDaAnzLQB+SrFSZEp+EO21C0WhWy24Ma3jIssZbNrtW8ZJxtL+se7CFyEEyWBTDHTBuRpJJbZpOJe4e9v27aQdTr/kC3xjMlStkStUHyBrdm7iri9EfvbgCwR2oA8zcQhBKloDiaJTa14wtt2WJu5VnK+O/GZT8U72SE/ADLC8kggPxNJf3kXgc59VNwj8GPZfquJwjnJ9EEW0mKfoeIzn56VbBCBZZJAJghtQF5GsuVpoXSK0Z1UOnEjWciYyOeQnLk2QW3h8PO7xmc+XQ9ixg3IBqENyMudpA/eRaA3KXbiJrJllKX6uTJgKVuqWcuCWuyhdxef+bT9qfhnggG0QGgD8lGK0yJzENtpkqcqZUspR9rcUzfW8ZmkZt/ckyyY1Vv/nKpSfOZTt5S9/1N+HwMQoQ3ISa24j1lHO0vZMkmgFp/5HHxWPHc2AjgTp0cCeahE5y0X17LXG3mrxGc+F7dioAZIHjNtQB4W4rjvnLBkCgvxmc/JdzFYAySNmTYgfZXovOXmWjb6jjxV4jOfm3ditg1IGjNtQPoWogOXo1SuAMDpFuIznyNm24CEMdMGpK0SnbdcXSm94/9xXCU+87litg1IGDNtQNoWogOXM06SzM9CfOZzxmwbkChm2oB0laLzljtOksxLJT7zuZvI7jAEkBhCG5AuDqKARGjLSeVdANxdifcBkCSWRwJpKiT9610EgvGbbNkc0lWIzzwMy6KBBDHTBqSJAyiwjVnX9PEao3EtWx4PICGENiBNdOCwjRCfPl5jbKu8CwDQLUIbkJ6xOIwAL13L3hdI00R85vESIR5IDKENIC9HYO8JbQCAi7AKAfJVc1oBEh0xpZKijAAAAABJRU5ErkJggg==" style="height:50px;width:auto;object-fit:contain;" alt="Telepacifico">
+    <div>
+      <div class="logo-sub">TP NOTICIAS — GENERADOR DE MENSAJES</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="theme-switch" id="themeSwitch" onclick="toggleTheme()" title="Cambiar entre modo oscuro y claro">
+      <div class="theme-track"><div class="theme-thumb"></div></div>
+      <span class="theme-label" id="themeLbl">🌙 Oscuro</span>
+    </button>
+    <button class="hdr-btn" id="hdrBtnAdmin" style="display:none" onclick="openAdmin()" title="Administrar usuarios">
+      <span>⚙</span><span>Usuarios</span>
+    </button>
+    <button class="hdr-btn" onclick="downloadCurrent()" id="hdrBtnCurrent" title="Descargar archivos de la sección/nota activa">
+      <span>⬇</span><span>Descargar actual</span>
+      <span class="hdr-count" id="hdrCountCurrent">0</span>
+    </button>
+    <button class="hdr-btn hdr-btn-gold" onclick="downloadSession()" id="hdrBtnAll" title="Descargar todos los archivos generados en la sesión">
+      <span>⬇⬇</span><span>Descargar todo</span>
+      <span class="hdr-count" id="hdrCountAll">0</span>
+    </button>
+    <div style="display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);" id="hdrUserTag">—</div>
+      <button onclick="logout()" title="Cerrar sesión" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">⏻</button>
+    </div>
+    <button class="hdr-btn" style="color:var(--red);border-color:rgba(239,68,68,.25);" onclick="clearAllMessages()" title="Eliminar todos los .pbm de la carpeta vinculada">
+      <span>🗑</span><span>Limpiar Messages</span>
+    </button>
+    <div id="syncPill" style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent2);background:rgba(0,157,181,.12);border:1px solid rgba(0,157,181,.25);border-radius:20px;padding:4px 10px;opacity:0;transition:opacity .4s;pointer-events:none;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block;"></span>
+      Sincronizado
+    </div>
+    <div class="live-pill"><div class="live-dot"></div> Sistema Activo</div>
+  </div>
+</header>
+
+<div class="app">
+  <nav>
+    <div class="nav-section-title">Gráficas</div>
+    <button class="nav-btn active" onclick="setPage('bannerqr')" id="nav-bannerqr">
+      <span>🎬</span><span>Banner QR</span><span class="nav-badge">N×100</span>
+    </button>
+    <button class="nav-btn" onclick="setPage('personal')" id="nav-personal">
+      <span>👤</span><span>Personal</span><span class="nav-badge">1–30</span>
+    </button>
+    <button class="nav-btn" onclick="setPage('titulares')" id="nav-titulares">
+      <span>🔴</span><span>Titulares</span><span class="nav-badge">81–89</span>
+    </button>
+    <button class="nav-btn" onclick="setPage('macros')" id="nav-macros">
+      <span>📊</span><span>Macros</span><span class="nav-badge">M1–M9</span>
+    </button>
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Reportes</div>
+    <button class="nav-btn" onclick="setPage('reporte')" id="nav-reporte">
+      <span>📋</span><span>Reporte de Emisión</span><span class="nav-badge" id="nav-reporte-badge">0</span>
+    </button>
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Configuración</div>
+    <div style="padding:0 4px;">
+      <div class="cfg-label">Carpeta de Salida</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="cfg-input" id="outputPath" value="Sin vincular — haz clic en 📁" placeholder="Carpeta no vinculada" style="margin-bottom:0;flex:1;cursor:default;" readonly>
+        <button title="Vincular carpeta de destino" onclick="pickOutputFolder()"
+          style="cursor:pointer;background:var(--s3);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text2);font-size:14px;flex-shrink:0;transition:all .2s;"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">📁</button>
+      </div>
+      <div id="folderStatus" style="margin-top:6px;font-size:10px;color:var(--text3);line-height:1.5;">
+        Vincula una carpeta para guardar archivos <strong style="color:var(--accent)">directamente</strong>, sin diálogos y reemplazando existentes.
+      </div>
+    </div>
+  </nav>
+
+  <div class="content" id="mainContent"></div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:40px 44px;width:360px;display:flex;flex-direction:column;gap:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+    <div style="text-align:center;">
+      <div style="font-family:'Bebas Neue';font-size:28px;letter-spacing:3px;color:var(--accent2);">CHYRON PRIME</div>
+      <div style="font-size:11px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;">TP Noticias</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div class="f-label" style="margin-bottom:5px;">Usuario</div>
+        <input class="f-input" id="loginUser" placeholder="Usuario" autocomplete="off" style="text-transform:none" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div>
+        <div class="f-label" style="margin-bottom:5px;">Contraseña</div>
+        <input class="f-input" id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="loginError" style="display:none;color:var(--red);font-size:12px;text-align:center;padding:6px;background:rgba(239,68,68,.08);border-radius:6px;border:1px solid rgba(239,68,68,.2);"></div>
+    </div>
+    <button class="btn-gen" style="width:100%;justify-content:center;" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- ADMIN OVERLAY -->
+<div id="adminOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:8000;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:16px;width:580px;max-height:88vh;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.55);display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 26px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div>
+        <div style="font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;">Gestión de Usuarios</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Admin: <span id="adminUserLabel" style="color:var(--accent2);font-weight:600;"></span></div>
+      </div>
+      <button onclick="closeAdmin()" style="background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:15px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 26px;flex-shrink:0;">
+      <button class="admin-tab active" id="adminTab-list"   onclick="switchAdminTab('list')">👥 Usuarios</button>
+      <button class="admin-tab"        id="adminTab-new"    onclick="switchAdminTab('new')">＋ Crear usuario</button>
+      <button class="admin-tab"        id="adminTab-mypass" onclick="switchAdminTab('mypass')">🔑 Mi contraseña</button>
+    </div>
+    <div id="adminContent" style="overflow-y:auto;flex:1;padding:22px 26px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">OK</span></div>
+
+<script>
+// ── TEMA ──
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);const l=document.getElementById('themeLbl');if(l)l.textContent=t==='dark'?'🌙 Oscuro':'☀️ Claro';localStorage.setItem('tp_theme',t);}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');}
+(function(){applyTheme(localStorage.getItem('tp_theme')||'dark');})();
+
+// ── SESIÓN ÚNICA ──
+const TAB_ID=Math.random().toString(36).slice(2)+Date.now().toString(36);
+const SESSION_CHANNEL=new BroadcastChannel('tp_session');
+function getUsers(){try{const r=localStorage.getItem('tp_users');if(r)return JSON.parse(r);}catch(e){}const d=[{user:'admin',pass:'admin2026',role:'admin'}];localStorage.setItem('tp_users',JSON.stringify(d));return d;}
+function saveUsers(u){localStorage.setItem('tp_users',JSON.stringify(u));}
+function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
+function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
+function claimSession(u){const s=getSessions();s[u]=TAB_ID;saveSessions(s);SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});}
+function releaseSession(u){const s=getSessions();if(s[u]===TAB_ID){delete s[u];saveSessions(s);SESSION_CHANNEL.postMessage({type:'RELEASED',user:u,tabId:TAB_ID});}}
+function isSessionTaken(u){const s=getSessions();const e=s[u];return e&&e!==TAB_ID;}
+SESSION_CHANNEL.onmessage=(e)=>{if(!currentUser)return;if(e.data.type==='CLAIMED'&&e.data.user===currentUser.user&&e.data.tabId!==TAB_ID)forceLogout('Tu sesión fue iniciada en otro equipo.');if(e.data.type==='PING'&&e.data.user===currentUser?.user)SESSION_CHANNEL.postMessage({type:'PONG',user:currentUser.user,tabId:TAB_ID});};
+let heartbeatInterval=null;
+function startHeartbeat(u){stopHeartbeat();heartbeatInterval=setInterval(()=>{if(!currentUser)return stopHeartbeat();claimSession(u);},20000);}
+function stopHeartbeat(){if(heartbeatInterval){clearInterval(heartbeatInterval);heartbeatInterval=null;}}
+window.addEventListener('beforeunload',()=>{if(currentUser)releaseSession(currentUser.user);});
+let currentUser=null;
+
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim().toLowerCase();
+  const p=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginError');
+  errEl.style.display='none';
+  const users=getUsers();
+  const found=users.find(x=>x.user===u&&x.pass===p);
+  if(!found){errEl.textContent='Usuario o contraseña incorrectos';errEl.style.display='block';document.getElementById('loginPass').value='';return;}
+  if(isSessionTaken(u)){
+    SESSION_CHANNEL.postMessage({type:'PING',user:u});
+    errEl.textContent='Verificando sesión en otros equipos…';errEl.style.display='block';errEl.style.color='var(--accent2)';
+    let responded=false;
+    const ph=(e)=>{if(e.data.type==='PONG'&&e.data.user===u){responded=true;SESSION_CHANNEL.removeEventListener('message',ph);errEl.textContent=`⚠ "${u}" ya tiene sesión activa en otro equipo.`;errEl.style.color='var(--red)';errEl.style.display='block';}};
+    SESSION_CHANNEL.addEventListener('message',ph);
+    setTimeout(()=>{SESSION_CHANNEL.removeEventListener('message',ph);if(!responded){releaseSession(u);completeLogin(found);}},800);
+    return;
+  }
+  completeLogin(found);
+}
+
+function completeLogin(found){
+  currentUser=found;claimSession(found.user);startHeartbeat(found.user);
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginError').style.color='var(--red)';
+  const ab=document.getElementById('hdrBtnAdmin');if(ab)ab.style.display=found.role==='admin'?'':'none';
+  const ut=document.getElementById('hdrUserTag');if(ut)ut.textContent=found.user.toUpperCase();
+  render();startSyncLoop();if(!_fbDb)firebaseInit();
+}
+
+function logout(){stopSyncLoop();if(currentUser)releaseSession(currentUser.user);stopHeartbeat();currentUser=null;document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';document.getElementById('loginError').style.display='none';document.getElementById('loginOverlay').style.display='flex';}
+function forceLogout(msg){stopHeartbeat();currentUser=null;document.getElementById('loginOverlay').style.display='flex';const e=document.getElementById('loginError');e.textContent=msg;e.style.color='var(--accent2)';e.style.display='block';document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';}
+
+// ── ADMIN ──
+let adminCurrentTab='list';
+function openAdmin(){if(!currentUser||currentUser.role!=='admin')return;document.getElementById('adminUserLabel').textContent=currentUser.user;switchAdminTab('list');document.getElementById('adminOverlay').style.display='flex';}
+function closeAdmin(){document.getElementById('adminOverlay').style.display='none';}
+function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();}
+
+function renderAdminList(){
+  const users=getUsers();const sessions=getSessions();
+  if(!users.length)return'<div class="empty-state"><div class="empty-ico">👥</div><p>No hay usuarios registrados.</p></div>';
+  return'<div style="display:flex;flex-direction:column;gap:8px;">'+users.map((u,i)=>{
+    const active=sessions[u.user];const isHere=active===TAB_ID;const elsewhere=active&&!isHere;
+    const badge=elsewhere?`<span style="font-size:10px;background:rgba(92,184,92,.15);color:var(--green);padding:2px 9px;border-radius:10px;font-weight:600;">● Conectado</span>`:isHere?`<span style="font-size:10px;background:rgba(0,157,181,.12);color:var(--accent2);padding:2px 9px;border-radius:10px;font-weight:600;">● Este equipo</span>`:`<span style="font-size:10px;color:var(--text3);">○ Desconectado</span>`;
+    return`<div class="user-row" id="urow-${i}"><div class="user-row-head" onclick="toggleUserRow(${i})"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:50%;background:${u.role==='admin'?'rgba(0,157,181,.15)':'var(--s3)'};border:1px solid ${u.role==='admin'?'rgba(0,157,181,.35)':'var(--border2)'};display:flex;align-items:center;justify-content:center;font-size:16px;">${u.role==='admin'?'⭐':'👤'}</div><div><div style="font-weight:700;font-size:13px;">${u.user}</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">${u.role==='admin'?'Administrador':'Usuario'}</div></div></div><div style="display:flex;align-items:center;gap:8px;">${badge}<span style="color:var(--text3);font-size:11px;" id="uarrow-${i}">▾</span></div></div><div class="user-row-body" id="ubody-${i}"><div class="form-grid" style="margin-bottom:12px;"><div class="form-group"><div class="f-label">Nombre de usuario</div><input class="f-input" id="uedit-name-${i}" value="${u.user}" style="text-transform:none" ${u.user==='admin'?'disabled style="opacity:.45;cursor:not-allowed;text-transform:none"':''}></div><div class="form-group"><div class="f-label">Nueva contraseña</div><input class="f-input" id="uedit-pass-${i}" type="password" placeholder="••••••••"></div><div class="form-group"><div class="f-label">Confirmar contraseña</div><input class="f-input" id="uedit-pass2-${i}" type="password" placeholder="••••••••"></div><div class="form-group"><div class="f-label">Rol</div><select class="f-select" id="uedit-role-${i}" ${u.user==='admin'?'disabled':''}><option value="user" ${u.role==='user'?'selected':''}>👤 Usuario</option><option value="admin" ${u.role==='admin'?'selected':''}>⭐ Administrador</option></select></div></div><div id="uedit-err-${i}" style="display:none;font-size:12px;color:var(--red);margin-bottom:10px;padding:7px 11px;background:rgba(230,57,80,.07);border-radius:7px;border:1px solid rgba(230,57,80,.2);"></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><button class="btn-gen" style="padding:9px 20px;font-size:12px;" onclick="saveUserEdit(${i})">✓ Guardar</button>${elsewhere?`<button class="btn-sm" onclick="kickUser('${u.user}')" style="color:var(--red);">⏏ Cerrar sesión</button>`:''} ${u.user!=='admin'?`<button class="btn-sm" onclick="deleteUser(${i})" style="color:var(--red);margin-left:auto;">🗑 Eliminar</button>`:''}</div></div></div>`;
+  }).join('')+'</div>';
+}
+
+function toggleUserRow(i){const b=document.getElementById('ubody-'+i);const a=document.getElementById('uarrow-'+i);const o=b.classList.toggle('open');if(a)a.textContent=o?'▴':'▾';}
+
+function saveUserEdit(i){
+  const users=getUsers();const u=users[i];
+  const newName=document.getElementById(`uedit-name-${i}`)?.value.trim().toLowerCase();
+  const newPass=document.getElementById(`uedit-pass-${i}`)?.value;
+  const newPass2=document.getElementById(`uedit-pass2-${i}`)?.value;
+  const newRole=document.getElementById(`uedit-role-${i}`)?.value;
+  const errEl=document.getElementById(`uedit-err-${i}`);
+  const showErr=msg=>{errEl.textContent=msg;errEl.style.display='block';};
+  errEl.style.display='none';
+  if(u.user!=='admin'&&newName){if(newName.length<3)return showErr('⚠ El nombre debe tener al menos 3 caracteres');if(newName!==u.user&&users.find((x,j)=>x.user===newName&&j!==i))return showErr('⚠ Ese nombre de usuario ya existe');}
+  if(newPass){if(newPass.length<4)return showErr('⚠ La contraseña debe tener al menos 4 caracteres');if(newPass!==newPass2)return showErr('⚠ Las contraseñas no coinciden');users[i].pass=newPass;if(currentUser.user===u.user)currentUser.pass=newPass;}
+  if(u.user!=='admin'&&newName&&newName!==u.user){if(currentUser.user===u.user){releaseSession(u.user);currentUser.user=newName;claimSession(newName);document.getElementById('hdrUserTag').textContent=newName.toUpperCase();document.getElementById('adminUserLabel').textContent=newName;}users[i].user=newName;}
+  if(newRole&&u.user!=='admin')users[i].role=newRole;
+  saveUsers(users);showToast('✓ Usuario actualizado correctamente','ok');switchAdminTab('list');
+}
+
+function renderAdminNew(){return`<div style="display:flex;flex-direction:column;gap:14px;max-width:420px;"><div class="form-grid"><div class="form-group"><div class="f-label">Nombre de usuario</div><input class="f-input" id="newUserName" placeholder="ej: juan.garcia" style="text-transform:none" onkeydown="if(event.key==='Enter')addUser()"></div><div class="form-group"><div class="f-label">Rol</div><select class="f-select" id="newUserRole"><option value="user">👤 Usuario</option><option value="admin">⭐ Administrador</option></select></div><div class="form-group"><div class="f-label">Contraseña</div><input class="f-input" id="newUserPass" type="password" placeholder="Mínimo 4 caracteres"></div><div class="form-group"><div class="f-label">Confirmar contraseña</div><input class="f-input" id="newUserPass2" type="password" placeholder="Repetir contraseña" onkeydown="if(event.key==='Enter')addUser()"></div></div><div id="newUserError" style="display:none;font-size:12px;color:var(--red);padding:7px 11px;background:rgba(230,57,80,.07);border-radius:7px;border:1px solid rgba(230,57,80,.2);"></div><button class="btn-gen" style="align-self:flex-start;" onclick="addUser()">＋ Crear usuario</button></div>`;}
+
+function addUser(){
+  const name=document.getElementById('newUserName')?.value.trim().toLowerCase();
+  const pass=document.getElementById('newUserPass')?.value;
+  const pass2=document.getElementById('newUserPass2')?.value;
+  const role=document.getElementById('newUserRole')?.value;
+  const errEl=document.getElementById('newUserError');
+  const showErr=msg=>{errEl.textContent=msg;errEl.style.display='block';};
+  errEl.style.display='none';
+  if(!name||name.length<3)return showErr('⚠ El nombre debe tener al menos 3 caracteres');
+  if(!pass||pass.length<4)return showErr('⚠ La contraseña debe tener al menos 4 caracteres');
+  if(pass!==pass2)return showErr('⚠ Las contraseñas no coinciden');
+  const users=getUsers();if(users.find(u=>u.user===name))return showErr('⚠ Ese nombre de usuario ya existe');
+  users.push({user:name,pass,role});saveUsers(users);showToast(`✓ Usuario "${name}" creado`,'ok');switchAdminTab('list');
+}
+
+function renderAdminMyPass(){return`<div style="display:flex;flex-direction:column;gap:14px;max-width:340px;"><div style="font-size:13px;color:var(--text2);line-height:1.6;">Cambia tu propia contraseña de administrador.</div><div class="form-group"><div class="f-label">Contraseña actual</div><input class="f-input" id="myPassCurrent" type="password" placeholder="Tu contraseña actual"></div><div class="form-group"><div class="f-label">Nueva contraseña</div><input class="f-input" id="myPassNew" type="password" placeholder="Mínimo 4 caracteres"></div><div class="form-group"><div class="f-label">Confirmar nueva contraseña</div><input class="f-input" id="myPassNew2" type="password" placeholder="Repetir nueva contraseña" onkeydown="if(event.key==='Enter')changeMyPass()"></div><div id="myPassMsg" style="display:none;font-size:12px;padding:7px 11px;border-radius:7px;border:1px solid;"></div><button class="btn-gen" style="align-self:flex-start;" onclick="changeMyPass()">✓ Cambiar contraseña</button></div>`;}
+
+function changeMyPass(){
+  const current=document.getElementById('myPassCurrent')?.value;
+  const newp=document.getElementById('myPassNew')?.value;
+  const newp2=document.getElementById('myPassNew2')?.value;
+  const msgEl=document.getElementById('myPassMsg');
+  const showMsg=(msg,ok)=>{msgEl.textContent=msg;msgEl.style.color=ok?'var(--green)':'var(--red)';msgEl.style.background=ok?'rgba(92,184,92,.08)':'rgba(230,57,80,.07)';msgEl.style.borderColor=ok?'rgba(92,184,92,.25)':'rgba(230,57,80,.2)';msgEl.style.display='block';};
+  msgEl.style.display='none';
+  const users=getUsers();const me=users.find(u=>u.user===currentUser.user);
+  if(!me||me.pass!==current)return showMsg('⚠ La contraseña actual es incorrecta',false);
+  if(!newp||newp.length<4)return showMsg('⚠ Mínimo 4 caracteres',false);
+  if(newp!==newp2)return showMsg('⚠ Las contraseñas no coinciden',false);
+  if(newp===current)return showMsg('⚠ La nueva contraseña debe ser diferente',false);
+  me.pass=newp;currentUser.pass=newp;saveUsers(users);showMsg('✓ Contraseña cambiada correctamente',true);
+  document.getElementById('myPassCurrent').value='';document.getElementById('myPassNew').value='';document.getElementById('myPassNew2').value='';
+}
+
+function kickUser(username){SESSION_CHANNEL.postMessage({type:'KICK',user:username});releaseSessionByAdmin(username);switchAdminTab('list');showToast(`Sesión de "${username}" cerrada`,'ok');}
+function releaseSessionByAdmin(username){const s=getSessions();delete s[username];saveSessions(s);}
+SESSION_CHANNEL.addEventListener('message',e=>{if(e.data.type==='KICK'&&currentUser&&e.data.user===currentUser.user)forceLogout('El administrador cerró tu sesión.');});
+function deleteUser(i){const users=getUsers();if(users[i].user==='admin')return;if(!confirm(`¿Eliminar al usuario "${users[i].user}"?`))return;releaseSessionByAdmin(users[i].user);users.splice(i,1);saveUsers(users);switchAdminTab('list');showToast('Usuario eliminado','ok');}
+
+// ════════════════════════════════════════════════════════
+// PERSONAL_DB — persistente en localStorage
+// ════════════════════════════════════════════════════════
+const PERSONAL_DB_DEFAULTS = {
+  1:  { n1:'GILDARDO ARANGO',         c1:'DIRECTOR GENERAL | @GILDARDO_ARANGO' },
+  2:  { n1:'MAURICIO CABAL',           c1:'SUBDIRECTOR | @MAURICIOCABAL' },
+  3:  { n1:'DAVID GRISALES',           c1:'PRODUCTOR GENERAL | @LDGRISALES' },
+  4:  { n1:'ANDREA SARRIA',            c1:'JEFA DE EMISIÓN' },
+  5:  { n1:'JHONATAN ZAMBRANO',        c1:'PRODUCTOR | @JHONATAN_ZAMBRANO_02' },
+  7:  { n1:'JAIME DINAS',              c1:'PRESENTADOR | @JAIMEDINAS' },
+  8:  { n1:'SEBASTIÁN BEDOYA',         c1:'PRESENTADOR | @BEDOYAWEB' },
+  13: { n1:'ARMANDO GAMBOA',           c1:'PRESENTADOR | @GAMBOANEWS' },
+  14: { n1:'ESTEPHANIA TABIMA',        c1:'PRESENTADORA | @TEFATABIMA' },
+  15: { n1:'LUZ ÁNGELLY RODRÍGUEZ',    c1:'PRESENTADORA | @GIGIRODRIGUEZPALTA' },
+  16: { n1:'SEBASTIÁN BEDOYA',         c1:'PRESENTADOR | @BEDOYAWEB' },
+  17: { n1:'MILTON MEDINA',            c1:'PRESENTADOR | @MIILMEDINA' },
+  18: { n1:'JAIME DINAS',              c1:'PRESENTADOR | @JAIMEDINAS' },
+  19: { n1:'DANIEL MILLÁN',            c1:'PRESENTADOR | @DMILLANPEREA' },
+  20: { n1:'MALEJA URRIAGO',           c1:'PRESENTADORA | @MALEURRIAGO8' },
+  21: { n1:'IVANA SALAZAR PAGUATIAN',  c1:'PRODUCTORA EMISIÓN SEMANA | @IIVANNA99' },
+  22: { n1:'LUISA SOLÍS',              c1:'PERIODISTA | @LUISASOLISG' },
+  23: { n1:'JEFFERSON BOLIVAR NIETO',  c1:'PERIODISTA @JEFFERSONPERIODISTA' },
+  24: { n1:'GILDARDO ARANGO',          c1:'DIRECTOR | @GILDARDO_ARANGO' },
+  25: { n1:'DAVID GRISALES',           c1:'PRODUCTOR GENERAL | @LDGRISALES' },
+  26: { n1:'ANDREA SARRIA',            c1:'JEFA DE EMISIÓN' },
+  27: { n1:'MAURICIO CABAL',           c1:'SUBDIRECTOR | @MAURICIOCABAL' },
+  28: { n1:'SEBASTIÁN BEDOYA',         c1:'JEFE DE EMISIÓN | @BEDOYAWEB' },
+  29: { n1:'JHONATAN ZAMBRANO',        c1:'PRODUCTOR | @JHONATAN_ZAMBRANO_02' },
+  30: { n1:'KAREN LÓPEZ',              c1:'PRESENTADORA | @KARENLOPERIODISTA' },
+};
+
+function loadPersonalDB(){
+  try{const r=localStorage.getItem('tp_personal_db');if(r)return JSON.parse(r);}catch(e){}
+  localStorage.setItem('tp_personal_db',JSON.stringify(PERSONAL_DB_DEFAULTS));
+  return JSON.parse(JSON.stringify(PERSONAL_DB_DEFAULTS));
+}
+function savePersonalDB(){localStorage.setItem('tp_personal_db',JSON.stringify(PERSONAL_DB));}
+
+const PERSONAL_DB = loadPersonalDB();
+
+// ── QR DB ──
+const QR_DB=[
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR0.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR1.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR2.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR3.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR4.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR5.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR6.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR7.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR8.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR9.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR10.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR11.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR12.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR13.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR14.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR15.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR16.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR17.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR18.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR19.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR20.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR21.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR22.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR23.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR24.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR25.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR26.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR27.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR28.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR29.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR30.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR31.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR32.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR33.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR34.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR35.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR36.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR37.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR38.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR39.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR40.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR41.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR42.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR43.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR44.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR45.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR46.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR47.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR48.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR49.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR50.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR51.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR52.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR53.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR54.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR55.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR56.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR57.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR58.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR59.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR60.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR61.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR62.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR63.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR64.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR65.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR66.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR67.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR68.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR69.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR70.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR71.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR72.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR73.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR74.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR75.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR76.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR77.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR78.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR79.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR80.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR81.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR82.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR83.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR84.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR85.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR86.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR87.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR88.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR89.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR90.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR91.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR92.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR93.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR94.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR95.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR96.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR97.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR98.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR99.jpeg',
+  'I:\\PROJECTS\\TP NOTICIAS 2024\\Images\\QR Codes\\CÓDIGO QR100.jpeg',
+];
+
+// ── ESTADO ──
+let currentPage='bannerqr';
+const fileStore={bannerqr:[],personal:[],titulares:[],macros:[]};
+function store(){return fileStore[currentPage];}
+const bqr_notas={};
+let bqr_nota=1;
+function bqrGetNota(n){if(!bqr_notas[n])bqr_notas[n]={draft:{nombre:'',cargo:'',tematico:'',ubicacion:'',qr:''}};return bqr_notas[n];}
+let pers_id='';
+
+// ── ROUTING ──
+function setPage(page){currentPage=page;document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav-'+page).classList.add('active');render();}
+
+function render(){
+  const c=document.getElementById('mainContent');
+  if(currentPage==='bannerqr')c.innerHTML=renderBannerQR();
+  else if(currentPage==='personal')c.innerHTML=renderPersonal();
+  else if(currentPage==='titulares')c.innerHTML=renderTitulares();
+  else if(currentPage==='macros')c.innerHTML=renderMacros();
+  else if(currentPage==='reporte')c.innerHTML=renderReporte();
+  renderFilesList();updateHeaderCounts();updateReporteBadge();
+}
+
+// ════════════════════════════════════════════════════════
+// BANNER QR
+// ════════════════════════════════════════════════════════
+function bqrNextNum(){
+  const base=bqr_nota*100;
+  const used=fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return n>=base&&n<base+100;}).map(f=>parseInt(f.name));
+  let next=base+1;while(used.includes(next))next++;return next;
+}
+
+function renderBannerQR(){
+  const draft=bqrGetNota(bqr_nota).draft;
+  const nextNum=bqrNextNum();
+  const noteOptions=Array.from({length:65},(_,i)=>i+1).map(n=>{
+    const count=fileStore.bannerqr.filter(f=>{const x=parseInt(f.name);return x>=n*100&&x<n*100+100;}).length;
+    const indicator=count>0?` (${count})`:'';
+    return`<option value="${n}" ${n===bqr_nota?'selected':''}>NOTA ${n}${indicator}</option>`;
+  }).join('');
+
+  return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">BANNER CON QR</div>
+        <div class="page-meta">Cada generar crea el siguiente crédito de la nota</div>
+      </div>
+      <div class="scene-badge">BANNER2QR.pbx</div>
+    </div>
+    <div class="form-group">
+      <div class="f-label">Nota del Noticiero</div>
+      <select class="f-select" onchange="bqrCambiarNota(parseInt(this.value))">${noteOptions}</select>
+    </div>
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="section-lbl">Crédito — <span style="color:var(--accent2);font-family:'DM Mono'">${nextNum}.pbm</span></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <div class="f-label">Nombre</div>
+          <input class="f-input" id="bqr_nombre" placeholder="Nombre del invitado / periodista"
+            value="${draft.nombre}" oninput="bqrGetNota(bqr_nota).draft.nombre=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <div class="f-label">Cargo</div>
+          <input class="f-input" id="bqr_cargo" placeholder="Cargo o título"
+            value="${draft.cargo}" oninput="bqrGetNota(bqr_nota).draft.cargo=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group full">
+          <div class="f-label">Temático</div>
+          <input class="f-input" id="bqr_tematico" placeholder="Temático de la nota"
+            value="${draft.tematico}" oninput="bqrGetNota(bqr_nota).draft.tematico=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <div class="f-label">Ubicación</div>
+          <input class="f-input" id="bqr_ubicacion" placeholder="CALI, VALLE DEL CAUCA"
+            value="${draft.ubicacion}" oninput="bqrGetNota(bqr_nota).draft.ubicacion=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <div class="f-label">Código QR</div>
+          <select class="f-select" id="bqr_qr" onchange="bqrGetNota(bqr_nota).draft.qr=this.value">
+            <option value="">— Selecciona QR —</option>
+            ${QR_DB.map((q,qi)=>`<option value="${q}" ${draft.qr===q?'selected':''}>${qi===0?'QR 0 — Sin QR':'QR '+qi+' — CÓDIGO QR'+qi+'.jpeg'}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn-gen" onclick="generateBannerQR()">⚡ Generar ${nextNum}.pbm</button>
+      <button class="btn-clear" onclick="bqrLimpiarCampos()">↺ Limpiar campos</button>
+      <button class="btn-clear" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="bqrClear()">✕ Limpiar nota</button>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr">
+        <div class="section-lbl" id="filesLbl">Archivos — Nota ${bqr_nota}</div>
+      </div>
+      <div id="filesList"></div>
+    </div>`;
+}
+
+function bqrCambiarNota(n){bqr_nota=n;render();}
+function bqrLimpiarCampos(){if(bqr_notas[bqr_nota])bqr_notas[bqr_nota].draft={nombre:'',cargo:'',tematico:'',ubicacion:bqr_notas[bqr_nota].draft?.ubicacion||'',qr:bqr_notas[bqr_nota].draft?.qr||''};render();}
+function bqrClear(){bqr_notas[bqr_nota]={draft:{nombre:'',cargo:'',tematico:'',ubicacion:'',qr:''}};fileStore.bannerqr=fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return!(n>=bqr_nota*100&&n<(bqr_nota*100)+100);});render();syncAfterChange();}
+
+function generateBannerQR(){
+  const draft=bqrGetNota(bqr_nota).draft;
+  draft.nombre=(document.getElementById('bqr_nombre')?.value||draft.nombre).toUpperCase();
+  draft.cargo=(document.getElementById('bqr_cargo')?.value||draft.cargo).toUpperCase();
+  draft.tematico=(document.getElementById('bqr_tematico')?.value||draft.tematico).toUpperCase();
+  draft.ubicacion=(document.getElementById('bqr_ubicacion')?.value||draft.ubicacion).toUpperCase();
+  draft.qr=document.getElementById('bqr_qr')?.value||draft.qr;
+  if(!draft.tematico&&!draft.nombre){showToast('⚠ Ingresa al menos nombre o temático','warn');return;}
+  const num=bqrNextNum();
+  const entry={name:`${num}.pbm`,xml:buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\BANNER2QR.pbx',[
+    {id:'Text Nombre Text',val:draft.nombre},
+    {id:'Text Cargo Text',val:draft.cargo},
+    {id:'Text Tematico Text',val:draft.tematico},
+    {id:'Text 1 Ubicacion Text',val:draft.ubicacion},
+    {id:'Image QR File',val:draft.qr},
+  ]),desc:`Nota ${bqr_nota} — ${draft.nombre||draft.tematico}`};
+  fileStore.bannerqr.push(entry);
+  bqr_notas[bqr_nota].draft={nombre:'',cargo:'',tematico:'',ubicacion:draft.ubicacion,qr:draft.qr};
+  // ── REGISTRO DE REPORTE ──
+  reporteRegistrar({
+    tipo:'bannerqr',
+    nota:bqr_nota,
+    archivo:entry.name,
+    nombre:draft.nombre,
+    cargo:draft.cargo,
+    tematico:draft.tematico,
+    ubicacion:draft.ubicacion,
+    qr:draft.qr?draft.qr.replace(/.*CÓDIGO QR(\d+)\.jpeg/,'QR $1'):'Sin QR',
+    usuario:currentUser?.user||'—'
+  });
+  render();showToast(`✓ ${num}.pbm generado`,'ok');syncAfterChange();
+}
+
+// ════════════════════════════════════════════════════════
+// PERSONAL
+// ════════════════════════════════════════════════════════
+function persNextSeqId(){
+  const used=new Set(fileStore.personal.map(f=>f.seqId).filter(Boolean));
+  let n=1;while(used.has(n))n++;return n;
+}
+
+function renderPersonal(){
+  const allIds=Object.keys(PERSONAL_DB).map(Number).sort((a,b)=>a-b);
+  const nextId=persNextSeqId();
+  const cards=allIds.map(id=>{
+    const p=PERSONAL_DB[id];
+    const generated=fileStore.personal.filter(f=>f.dbId===id);
+    const genBadge=generated.length?`<span style="font-size:9px;background:rgba(0,157,181,.15);color:var(--accent2);padding:1px 5px;border-radius:4px;margin-top:2px;display:inline-block;">✓ ${generated.map(f=>f.name).join(', ')}</span>`:'';
+    const displayName=p.n1||'<span style="color:var(--text3);font-style:italic">Sin nombre</span>';
+    const label=p.n2?`${displayName}<br><span style="color:var(--text3);font-size:9px;">+</span><br>${p.n2}`:displayName;
+    return`<div class="note-card ${pers_id==id?'active':''}" style="position:relative;padding-top:14px;" onclick="persSelect(${id})">
+      <button onclick="event.stopPropagation();persDelete(${id})" title="Eliminar crédito" style="position:absolute;top:4px;right:4px;background:transparent;border:none;color:var(--text3);font-size:11px;cursor:pointer;line-height:1;padding:2px 3px;border-radius:3px;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</button>
+      <div style="font-size:10px;color:var(--text2);line-height:1.3;text-align:center;">${label}</div>
+      ${genBadge}
+    </div>`;
+  }).join('');
+  const addCard=`<div class="note-card" onclick="persAddNew()" title="Agregar nuevo crédito" style="border-style:dashed;opacity:.7;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--accent2);cursor:pointer;"><span style="font-size:18px;line-height:1">＋</span><span>Nuevo</span></div>`;
+
+  let editForm='';
+  if(pers_id){
+    const p=PERSONAL_DB[pers_id]||{};
+    const hasDual=p.n2!==undefined;
+    const labelA=hasDual?`generará <strong>${nextId}a.pbm</strong>`:`generará <strong>${nextId}.pbm</strong>`;
+    const labelB=hasDual?`y <strong>${nextId}b.pbm</strong>`:'';
+    editForm=`
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="section-lbl">✏️ Crédito ${pers_id}</div>
+          <div style="font-size:11px;color:var(--text3);">Archivo: <span style="color:var(--accent2);font-family:'DM Mono';">${labelA} ${labelB}</span></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="f-label">Nombre${hasDual?' — Presentador A':''}</div>
+            <input class="f-input" id="pers_n1" placeholder="NOMBRE COMPLETO"
+              value="${p.n1||''}" oninput="this.value=this.value.toUpperCase();if(PERSONAL_DB[pers_id])PERSONAL_DB[pers_id].n1=this.value;savePersonalDB();persSyncCard()">
+          </div>
+          <div class="form-group">
+            <div class="f-label">Cargo / Redes${hasDual?' — A':''}</div>
+            <input class="f-input" id="pers_c1" placeholder="CARGO | @RED_SOCIAL"
+              value="${p.c1||''}" oninput="this.value=this.value.toUpperCase();if(PERSONAL_DB[pers_id])PERSONAL_DB[pers_id].c1=this.value;savePersonalDB()">
+          </div>
+          ${hasDual?`
+          <div class="form-group">
+            <div class="f-label">Nombre — Presentador B</div>
+            <input class="f-input" id="pers_n2" placeholder="SEGUNDO PRESENTADOR"
+              value="${p.n2||''}" oninput="this.value=this.value.toUpperCase();if(PERSONAL_DB[pers_id])PERSONAL_DB[pers_id].n2=this.value;savePersonalDB();persSyncCard()">
+          </div>
+          <div class="form-group">
+            <div class="f-label">Cargo / Redes — B</div>
+            <input class="f-input" id="pers_c2" placeholder="CARGO | @RED_SOCIAL"
+              value="${p.c2||''}" oninput="this.value=this.value.toUpperCase();if(PERSONAL_DB[pers_id])PERSONAL_DB[pers_id].c2=this.value;savePersonalDB()">
+          </div>`:`
+          <div class="form-group full" style="margin-top:2px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text2);">
+              <input type="checkbox" id="pers_dual" onchange="persToggleDual(this.checked)" style="accent-color:var(--accent)">
+              Este crédito tiene dos presentadores en set
+            </label>
+          </div>`}
+        </div>
+        ${hasDual?`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding:7px 10px;background:rgba(0,157,181,.06);border-radius:6px;border:1px solid rgba(0,157,181,.15);">⚡ Se generarán <strong style="color:var(--accent2)">dos archivos</strong>: <span style="font-family:'DM Mono';">${nextId}a.pbm</span> y <span style="font-family:'DM Mono';">${nextId}b.pbm</span></div>`:''}
+      </div>`;
+  }
+
+  return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">CRÉDITO PERSONAL</div>
+        <div class="page-meta">Selecciona un crédito como base — el archivo se numerará <strong style="color:var(--accent2)">${nextId}, ${nextId+1}, ${nextId+2}…</strong></div>
+      </div>
+      <div class="scene-badge">PERSONAL.pbx</div>
+    </div>
+    <div><div class="notes-grid">${cards}${addCard}</div></div>
+    ${editForm}
+    <div class="actions-bar">
+      <button class="btn-gen" onclick="generatePersonal()">⚡ Generar ${pers_id&&PERSONAL_DB[pers_id]?.n2!==undefined?nextId+'a/'+nextId+'b':nextId}.pbm</button>
+      <button class="btn-clear" onclick="persClear()">✕ Limpiar todo</button>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr"><div class="section-lbl">Archivos Generados</div></div>
+      <div id="filesList"><div class="empty-state"><div class="empty-ico">📄</div><p>Los archivos .pbm aparecerán aquí.</p></div></div>
+    </div>`;
+}
+
+function persToggleDual(checked){
+  if(!pers_id)return;
+  if(checked){if(!PERSONAL_DB[pers_id])PERSONAL_DB[pers_id]={n1:'',c1:''};PERSONAL_DB[pers_id].n2='';PERSONAL_DB[pers_id].c2='';}
+  else{if(PERSONAL_DB[pers_id]){delete PERSONAL_DB[pers_id].n2;delete PERSONAL_DB[pers_id].c2;}}
+  savePersonalDB();render();
+}
+function persSelect(id){pers_id=id;render();}
+function persClear(){pers_id='';fileStore.personal=[];render();syncAfterChange();}
+function persAddNew(){
+  const usedIds=Object.keys(PERSONAL_DB).map(Number);let newId=1;while(usedIds.includes(newId))newId++;
+  PERSONAL_DB[newId]={n1:'',c1:''};pers_id=newId;savePersonalDB();render();
+  setTimeout(()=>document.querySelector('#pers_n1')?.focus(),100);
+}
+function persDelete(id){
+  if(!confirm(`¿Eliminar el crédito "${PERSONAL_DB[id]?.n1||'Sin nombre'}" de la grilla?`))return;
+  delete PERSONAL_DB[id];if(pers_id===id)pers_id='';
+  fileStore.personal=fileStore.personal.filter(f=>f.dbId!==id);
+  savePersonalDB();render();syncAfterChange();
+}
+let _persSyncTimer=null;
+function persSyncCard(){
+  if(!pers_id)return;const p=PERSONAL_DB[pers_id];if(!p)return;
+  const activeCard=document.querySelector('.note-card.active');if(!activeCard)return;
+  const labelDiv=activeCard.querySelector('div[style*="font-size:10px"]');if(!labelDiv)return;
+  const displayName=p.n1||'<span style="color:var(--text3);font-style:italic">Sin nombre</span>';
+  labelDiv.innerHTML=p.n2?`${displayName}<br><span style="color:var(--text3);font-size:9px;">+</span><br>${p.n2}`:displayName;
+  clearTimeout(_persSyncTimer);_persSyncTimer=setTimeout(()=>syncAfterChange(),1000);
+}
+
+function generatePersonal(){
+  if(!pers_id){showToast('⚠ Selecciona un crédito de la grilla','warn');return;}
+  const n1=(document.getElementById('pers_n1')?.value||'').trim().toUpperCase();
+  const c1=(document.getElementById('pers_c1')?.value||'').trim().toUpperCase();
+  const n2=(document.getElementById('pers_n2')?.value||'').trim().toUpperCase();
+  const c2=(document.getElementById('pers_c2')?.value||'').trim().toUpperCase();
+  const hasDual=PERSONAL_DB[pers_id]?.n2!==undefined;
+  if(!n1){showToast('⚠ Ingresa el nombre del crédito','warn');return;}
+  if(hasDual&&!n2){showToast('⚠ Ingresa el nombre del segundo presentador','warn');return;}
+  const seqId=persNextSeqId();
+  const addOrReplace=(entry)=>{const idx=fileStore.personal.findIndex(f=>f.name===entry.name);if(idx>=0)fileStore.personal[idx]=entry;else fileStore.personal.push(entry);};
+  const xml1=buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',[{id:'Text 1 Nombre Text',val:n1},{id:'Text 2 Cargo Text',val:c1}]);
+  if(hasDual){
+    const xml2=buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',[{id:'Text 1 Nombre Text',val:n2},{id:'Text 2 Cargo Text',val:c2}]);
+    addOrReplace({name:`${seqId}a.pbm`,xml:xml1,desc:n1,seqId,dbId:pers_id});
+    addOrReplace({name:`${seqId}b.pbm`,xml:xml2,desc:n2,seqId,dbId:pers_id});
+    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}a.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}b.pbm`,nombre:n2,cargo:c2,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    showToast(`✓ ${seqId}a.pbm + ${seqId}b.pbm generados`,'ok');
+  }else{
+    addOrReplace({name:`${seqId}.pbm`,xml:xml1,desc:n1,seqId,dbId:pers_id});
+    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    showToast(`✓ ${seqId}.pbm generado`,'ok');
+  }
+  renderFilesList();updateHeaderCounts();render();syncAfterChange();
+}
+
+// ════════════════════════════════════════════════════════
+// TITULARES
+// ════════════════════════════════════════════════════════
+let titulares_list=[{titular:'',fondo:''}];
+
+function renderTitulares(){
+  const rows=titulares_list.map((t,i)=>`
+    <div class="credit-row" id="tit-row-${i}">
+      <div style="display:flex;align-items:center;justify-content:center;min-width:110px;height:44px;background:var(--s3);border-radius:7px;font-family:'Bebas Neue';font-size:20px;color:var(--accent2);letter-spacing:2px;flex-shrink:0;padding:0 14px;white-space:nowrap;">TITULAR</div>
+      <input class="f-input" placeholder="TITULAR — ej: CONSEJO DE SEGURIDAD"
+        value="${t.titular}"
+        oninput="titulares_list[${i}].titular=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+      <input class="f-input" placeholder="Fondo — ej: ALERTA"
+        value="${t.fondo}"
+        oninput="titulares_list[${i}].fondo=this.value.toUpperCase();this.value=this.value.toUpperCase()"
+        style="max-width:200px">
+      <button class="btn-rm" onclick="titRemove(${i})">✕</button>
+    </div>`).join('');
+
+  return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">TITULARES / ALERTA</div>
+        <div class="page-meta">Lo Más — numeración automática desde el 81</div>
+      </div>
+      <div class="scene-badge">LO MASS5.pbx</div>
+    </div>
+    <div class="credits-wrap">
+      <div class="credits-hdr">
+        <div class="section-lbl">Titulares de la Sesión</div>
+        <button class="btn-add" onclick="titAdd()" ${titulares_list.length>=9?'disabled style="opacity:.4;cursor:not-allowed"':''}>＋ Agregar titular</button>
+      </div>
+      <div id="tit-container">${rows}</div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn-gen" onclick="generateTitulares()">⚡ Generar .pbm</button>
+      <button class="btn-clear" onclick="titClear()">✕ Limpiar</button>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr"><div class="section-lbl">Archivos Generados</div></div>
+      <div id="filesList"><div class="empty-state"><div class="empty-ico">📄</div><p>Los archivos .pbm aparecerán aquí.</p></div></div>
+    </div>`;
+}
+
+function titAdd(){if(titulares_list.length>=9)return;titulares_list.push({titular:'',fondo:''});render();}
+function titRemove(i){if(titulares_list.length===1){titulares_list[0]={titular:'',fondo:''};}else titulares_list.splice(i,1);render();}
+function titClear(){titulares_list=[{titular:'',fondo:''}];fileStore.titulares=[];render();syncAfterChange();}
+
+function generateTitulares(){
+  document.querySelectorAll('#tit-container .credit-row').forEach((row,i)=>{
+    const inps=row.querySelectorAll('input.f-input');
+    if(inps[0])titulares_list[i]={titular:inps[0].value.trim().toUpperCase(),fondo:inps[1]?.value.trim().toUpperCase()||''};
+  });
+  const valid=titulares_list.filter(t=>t.titular.trim());
+  if(!valid.length){showToast('⚠ Ingresa al menos un titular','warn');return;}
+  const usedNums=new Set(fileStore.titulares.map(f=>parseInt(f.name)));
+  let nextNum=81;
+  valid.forEach(t=>{
+    while(usedNums.has(nextNum))nextNum++;
+    const num=nextNum;usedNums.add(num);
+    const entry={name:`${num}.pbm`,xml:buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\LO MASS5.pbx',[{id:'TITULAR Text',val:t.titular},{id:'Texto de Fondo Text',val:t.fondo}]),desc:t.titular};
+    const idx=fileStore.titulares.findIndex(f=>f.name===entry.name);if(idx>=0)fileStore.titulares[idx]=entry;else fileStore.titulares.push(entry);
+    reporteRegistrar({tipo:'titular',nota:'—',archivo:entry.name,nombre:t.titular,cargo:t.fondo||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    nextNum++;
+  });
+  titulares_list=[{titular:'',fondo:''}];
+  renderFilesList();showToast(`✓ ${valid.length} titular(es) generado(s) — Total: ${fileStore.titulares.length}`,'ok');render();syncAfterChange();
+}
+
+// ════════════════════════════════════════════════════════
+// MACROS
+// ════════════════════════════════════════════════════════
+let macros_list=[{l1:'',l2:''}];
+
+function renderMacros(){
+  const rows=macros_list.map((m,i)=>`
+    <div class="credit-row" id="mac-row-${i}">
+      <div style="display:flex;align-items:center;justify-content:center;min-width:160px;height:44px;background:var(--s3);border-radius:7px;font-family:'Bebas Neue';font-size:20px;color:var(--accent2);letter-spacing:2px;flex-shrink:0;padding:0 14px;white-space:nowrap;">MACROS ESPECIALES</div>
+      <input class="f-input" placeholder="Línea 1 — ej: SALUD EN CRISIS"
+        value="${m.l1}"
+        oninput="macros_list[${i}].l1=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+      <input class="f-input" placeholder="Línea 2 — ej: PACIENTES SIN ATENCIÓN"
+        value="${m.l2}"
+        oninput="macros_list[${i}].l2=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+      <button class="btn-rm" onclick="macRemove(${i})">✕</button>
+    </div>`).join('');
+
+  return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">MACROS — DOS LÍNEAS</div>
+        <div class="page-meta">Infografías — MACROS_1.pbm, MACROS_2.pbm…</div>
+      </div>
+      <div class="scene-badge">MACROS2.pbx</div>
+    </div>
+    <div class="credits-wrap">
+      <div class="credits-hdr">
+        <div class="section-lbl">Macros de la Sesión</div>
+        <button class="btn-add" onclick="macAdd()">＋ Agregar macro</button>
+      </div>
+      <div id="mac-container">${rows}</div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn-gen" onclick="generateMacros()">⚡ Generar .pbm</button>
+      <button class="btn-clear" onclick="macClear()">✕ Limpiar</button>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr"><div class="section-lbl">Archivos Generados</div></div>
+      <div id="filesList"><div class="empty-state"><div class="empty-ico">📄</div><p>Los archivos .pbm aparecerán aquí.</p></div></div>
+    </div>`;
+}
+
+function macAdd(){macros_list.push({l1:'',l2:''});render();}
+function macRemove(i){if(macros_list.length===1){macros_list[0]={l1:'',l2:''};}else macros_list.splice(i,1);render();}
+function macClear(){macros_list=[{l1:'',l2:''}];fileStore.macros=[];render();syncAfterChange();}
+
+function generateMacros(){
+  document.querySelectorAll('#mac-container .credit-row').forEach((row,i)=>{
+    const inps=row.querySelectorAll('input.f-input');
+    if(inps[0])macros_list[i]={l1:inps[0].value.trim().toUpperCase(),l2:inps[1]?.value.trim().toUpperCase()||''};
+  });
+  const valid=macros_list.filter(m=>m.l1.trim());
+  if(!valid.length){showToast('⚠ Ingresa al menos la Línea 1','warn');return;}
+  const usedNums=new Set(fileStore.macros.map(f=>{const mx=f.name.match(/MACROS_(\d+)\.pbm/);return mx?parseInt(mx[1]):0;}));
+  let nextNum=1;
+  valid.forEach(m=>{
+    while(usedNums.has(nextNum))nextNum++;
+    const num=nextNum;usedNums.add(num);
+    const entry={name:`MACROS_${num}.pbm`,xml:buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\MACROS2.pbx',[{id:'TextLine1 Text',val:m.l1},{id:'TextLine2 Text',val:m.l2}]),desc:`${m.l1}${m.l2?' / '+m.l2:''}`};
+    const idx=fileStore.macros.findIndex(f=>f.name===entry.name);if(idx>=0)fileStore.macros[idx]=entry;else fileStore.macros.push(entry);
+    reporteRegistrar({tipo:'macro',nota:'—',archivo:entry.name,nombre:m.l1,cargo:m.l2||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    nextNum++;
+  });
+  macros_list=[{l1:'',l2:''}];
+  renderFilesList();showToast(`✓ ${valid.length} macro(s) generado(s) — Total: ${fileStore.macros.length}`,'ok');render();syncAfterChange();
+}
+
+// ── XML BUILDER ──
+function buildXML(scenePath,updates){
+  let xml=`<?xml version="1.0" encoding="utf-8"?>\r\n<SceneMessage>\r\n  <ScenePath>${scenePath}</ScenePath>\r\n  <Updates>\r\n`;
+  updates.forEach(u=>{xml+=`    <Update Id="${u.id}">\r\n      <Value>${u.val||''}</Value>\r\n    </Update>\r\n`;});
+  xml+=`  </Updates>\r\n</SceneMessage>`;return xml;
+}
+
+// ── FILES LIST ──
+function renderFilesList(){
+  let files;
+  if(currentPage==='bannerqr'){files=fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return n>=bqr_nota*100&&n<(bqr_nota*100)+100;});}
+  else{files=store();}
+  const list=document.getElementById('filesList');
+
+  Object.keys(fileStore).forEach(key=>{
+    const badge=document.querySelector(`#nav-${key} .nav-badge`);if(!badge)return;
+    const count=fileStore[key].length;
+    const labels={bannerqr:'N×100',personal:'1–30',titulares:'81–89',macros:'M1–M9'};
+    badge.textContent=count>0?`${count} pbm`:labels[key];
+    badge.style.color=count>0?'var(--green)':'';
+    badge.style.background=count>0?'rgba(34,197,94,.1)':'';
+    badge.style.borderColor=count>0?'rgba(34,197,94,.25)':'';
+  });
+
+  if(!list)return;
+  if(!files.length){list.innerHTML=`<div class="empty-state"><div class="empty-ico">📄</div><p>Sin archivos generados${currentPage==='bannerqr'?` para Nota ${bqr_nota}`:''}.<br>Los archivos aparecerán aquí tras generar.</p></div>`;return;}
+
+  list.innerHTML=files.map(f=>{
+    const globalIdx=currentPage==='bannerqr'?fileStore.bannerqr.indexOf(f):store().indexOf(f);
+    return`<div class="file-card ok" id="fc-${globalIdx}" onclick="toggleEdit(${globalIdx})" style="cursor:pointer">
+      <div class="file-info">
+        <div class="file-ico">📋</div>
+        <div><div class="file-name">${f.name}</div><div class="file-desc">${f.desc}</div></div>
+      </div>
+      <div class="file-btns">
+        <button class="btn-sm dl" onclick="event.stopPropagation();downloadFile(${globalIdx})">⬇ Descargar</button>
+        <button class="btn-sm" onclick="event.stopPropagation();removeFile(${globalIdx})" style="color:var(--text3)" title="Eliminar">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  updateHeaderCounts();
+}
+
+function removeFile(i){store().splice(i,1);render();syncAfterChange();}
+
+function toggleEdit(i){
+  const card=document.getElementById('fc-'+i);
+  const existing=card.nextElementSibling;
+  if(existing?.dataset.editPanel===String(i)){existing.remove();return;}
+  document.querySelectorAll('[data-edit-panel]').forEach(el=>el.remove());
+  const f=store()[i];
+  const getVal=(id)=>{const m=f.xml.match(new RegExp(`Id="${id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}">[\\s\\S]*?<Value>([\\s\\S]*?)<\\/Value>`));return m?m[1]:'';};
+
+  let fieldsHTML='';
+  if(currentPage==='bannerqr'){fieldsHTML=`<div class="edit-grid"><div class="edit-field"><div class="f-label">Nombre</div><input class="f-input" id="ef_nombre" value="${getVal('Text Nombre Text')}"></div><div class="edit-field"><div class="f-label">Cargo</div><input class="f-input" id="ef_cargo" value="${getVal('Text Cargo Text')}"></div><div class="edit-field full"><div class="f-label">Temático</div><input class="f-input" id="ef_tematico" value="${getVal('Text Tematico Text')}"></div><div class="edit-field"><div class="f-label">Ubicación</div><input class="f-input" id="ef_ubicacion" value="${getVal('Text 1 Ubicacion Text')}"></div><div class="edit-field"><div class="f-label">QR</div><select class="f-select" id="ef_qr"><option value="">— Selecciona QR —</option>${QR_DB.map((q,qi)=>`<option value="${q}" ${getVal('Image QR File')===q?'selected':''}>${qi===0?'QR 0 — Sin QR':'QR '+qi+' — CÓDIGO QR'+qi+'.jpeg'}</option>`).join('')}</select></div></div>`;}
+  else if(currentPage==='personal'){fieldsHTML=`<div class="edit-grid"><div class="edit-field"><div class="f-label">Nombre</div><input class="f-input" id="ef_n1" value="${getVal('Text 1 Nombre Text')}"></div><div class="edit-field"><div class="f-label">Cargo</div><input class="f-input" id="ef_c1" value="${getVal('Text 2 Cargo Text')}"></div></div>`;}
+  else if(currentPage==='titulares'){fieldsHTML=`<div class="edit-grid"><div class="edit-field full"><div class="f-label">Titular</div><input class="f-input" id="ef_titular" value="${getVal('TITULAR Text')}"></div><div class="edit-field"><div class="f-label">Texto de Fondo</div><input class="f-input" id="ef_fondo" value="${getVal('Texto de Fondo Text')}"></div></div>`;}
+  else if(currentPage==='macros'){fieldsHTML=`<div class="edit-grid"><div class="edit-field full"><div class="f-label">Línea 1</div><input class="f-input" id="ef_l1" value="${getVal('TextLine1 Text')}"></div><div class="edit-field full"><div class="f-label">Línea 2</div><input class="f-input" id="ef_l2" value="${getVal('TextLine2 Text')}"></div></div>`;}
+
+  const panel=document.createElement('div');
+  panel.dataset.editPanel=String(i);panel.className='edit-panel';
+  panel.innerHTML=`<div class="edit-panel-title">✏️ Editando <strong>${f.name}</strong></div>${fieldsHTML}<div class="edit-panel-actions"><button class="btn-gen" style="padding:9px 20px;font-size:12px" onclick="saveEdit(${i})">✓ Guardar cambios</button><button class="btn-clear" style="padding:8px 16px;font-size:12px" onclick="this.closest('[data-edit-panel]').remove()">Cancelar</button></div>`;
+  card.insertAdjacentElement('afterend',panel);
+}
+
+function saveEdit(i){
+  const f=store()[i];
+  const v=(id)=>(document.getElementById(id)?.value||'').toUpperCase();
+  const vs=(id)=>document.getElementById(id)?.value||'';
+  let updates=[];
+  if(currentPage==='bannerqr'){updates=[{id:'Text Nombre Text',val:v('ef_nombre')},{id:'Text Cargo Text',val:v('ef_cargo')},{id:'Text Tematico Text',val:v('ef_tematico')},{id:'Text 1 Ubicacion Text',val:v('ef_ubicacion')},{id:'Image QR File',val:vs('ef_qr')}];f.desc=`${v('ef_tematico')||v('ef_nombre')||f.name}`;}
+  else if(currentPage==='personal'){updates=[{id:'Text 1 Nombre Text',val:v('ef_n1')},{id:'Text 2 Cargo Text',val:v('ef_c1')}];f.desc=v('ef_n1');savePersonalDB();}
+  else if(currentPage==='titulares'){updates=[{id:'TITULAR Text',val:v('ef_titular')},{id:'Texto de Fondo Text',val:v('ef_fondo')}];f.desc=v('ef_titular');}
+  else if(currentPage==='macros'){updates=[{id:'TextLine1 Text',val:v('ef_l1')},{id:'TextLine2 Text',val:v('ef_l2')}];f.desc=`${v('ef_l1')}${v('ef_l2')?' / '+v('ef_l2'):''}`;}
+  const scenePaths={bannerqr:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\BANNER2QR.pbx',personal:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',titulares:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\LO MASS5.pbx',macros:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\MACROS2.pbx'};
+  f.xml=buildXML(scenePaths[currentPage],updates);
+  document.querySelectorAll('[data-edit-panel]').forEach(el=>el.remove());
+  renderFilesList();showToast(`✓ ${f.name} actualizado`,'ok');syncAfterChange();
+}
+
+// ── FILE SYSTEM ACCESS ──
+let outputDirHandle=null;
+
+async function pickOutputFolder(){
+  if(!('showDirectoryPicker' in window)){showToast('⚠ Usa Chrome o Edge','warn');return;}
+  try{
+    outputDirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+    const pathEl=document.getElementById('outputPath');const statusEl=document.getElementById('folderStatus');
+    if(pathEl)pathEl.value='📁  '+outputDirHandle.name;
+    if(statusEl)statusEl.innerHTML=`<span style="color:var(--green)">✓ Carpeta vinculada: <strong>${outputDirHandle.name}</strong></span><br>Los archivos se guardarán aquí automáticamente.`;
+    showToast(`✓ Carpeta "${outputDirHandle.name}" vinculada`,'ok');
+  }catch(e){if(e.name!=='AbortError')showToast('⚠ No se pudo vincular la carpeta','warn');}
+}
+
+async function clearAllMessages(){
+  if(!outputDirHandle){showToast('⚠ Primero vincula la carpeta Messages (📁 en el nav)','warn');return;}
+  const pbmFiles=[];
+  for await(const [name]of outputDirHandle.entries()){if(name.toLowerCase().endsWith('.pbm'))pbmFiles.push(name);}
+  if(!pbmFiles.length){showToast('ℹ La carpeta no tiene archivos .pbm','ok');return;}
+  if(!confirm(`⚠ ¿Eliminar DEFINITIVAMENTE ${pbmFiles.length} archivo(s) .pbm de "${outputDirHandle.name}"?`))return;
+  let deleted=0;
+  for(const name of pbmFiles){try{await outputDirHandle.removeEntry(name);deleted++;}catch(e){}}
+  showToast(`✓ ${deleted} archivo(s) .pbm eliminados`,'ok');
+}
+
+async function writeFile(f){
+  if(!outputDirHandle){dlFileFallback(f);return false;}
+  try{
+    const fh=await outputDirHandle.getFileHandle(f.name,{create:true});
+    const w=await fh.createWritable();
+    await w.write('\uFEFF'+f.xml);await w.close();return true;
+  }catch(e){dlFileFallback(f);return false;}
+}
+
+function dlFileFallback(f){
+  const blob=new Blob(['\uFEFF'+f.xml],{type:'application/xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+async function downloadFile(i){const f=store()[i];if(!f)return;const wrote=await writeFile(f);showToast(wrote?`✓ ${f.name} guardado en carpeta`:`⬇ ${f.name} descargado`,'ok');}
+
+async function downloadAll(){
+  let files;
+  if(currentPage==='bannerqr'){files=fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return n>=bqr_nota*100&&n<bqr_nota*100+100;});}
+  else{files=store();}
+  if(!files.length)return;
+  let ok=0;for(const f of files){if(await writeFile(f))ok++;}
+  showToast(outputDirHandle?`✓ ${ok}/${files.length} archivos guardados`:`⬇ ${files.length} archivos descargados`,'ok');
+}
+
+// ── HEADER BUTTONS ──
+function getCurrentFiles(){if(currentPage==='bannerqr'){return fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return n>=bqr_nota*100&&n<(bqr_nota*100)+100;});}return store();}
+function getAllFiles(){return[...fileStore.bannerqr,...fileStore.personal,...fileStore.titulares,...fileStore.macros];}
+
+async function downloadCurrent(){
+  const files=getCurrentFiles();if(!files.length){showToast('⚠ No hay archivos en la sección actual','warn');return;}
+  let ok=0;for(const f of files){if(await writeFile(f))ok++;}
+  const label=currentPage==='bannerqr'?`Nota ${bqr_nota}`:currentPage;
+  showToast(outputDirHandle?`✓ ${ok}/${files.length} archivos guardados — ${label}`:`⬇ ${files.length} archivos descargados — ${label}`,'ok');
+}
+
+async function downloadSession(){
+  const files=getAllFiles();if(!files.length){showToast('⚠ No hay archivos generados','warn');return;}
+  let ok=0;for(const f of files){if(await writeFile(f))ok++;}
+  showToast(outputDirHandle?`✓ ${ok}/${files.length} archivos guardados`:`⬇ ${files.length} archivos descargados`,'ok');
+}
+
+function updateHeaderCounts(){
+  const curr=getCurrentFiles().length;const all=getAllFiles().length;
+  const cc=document.getElementById('hdrCountCurrent');const ca=document.getElementById('hdrCountAll');
+  if(cc)cc.textContent=curr;if(ca)ca.textContent=all;
+  const btnC=document.getElementById('hdrBtnCurrent');const btnA=document.getElementById('hdrBtnAll');
+  if(btnC)btnC.disabled=curr===0;if(btnA)btnA.disabled=all===0;
+}
+
+// ── TOAST ──
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;
+  t.style.borderColor=type==='ok'?'rgba(92,184,92,.4)':'rgba(230,57,80,.4)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ════════════════════════════════════════════════════════
+// SINCRONIZACIÓN EN TIEMPO REAL — Firebase
+// ════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDX_staZD3mmdHe7AWq9sCZylfhwcYuM_k",
+  authDomain: "chyron-tp-noticias.firebaseapp.com",
+  databaseURL: "https://chyron-tp-noticias-default-rtdb.firebaseio.com",
+  projectId: "chyron-tp-noticias",
+  storageBucket: "chyron-tp-noticias.firebasestorage.app",
+  messagingSenderId: "698211690362",
+  appId: "1:698211690362:web:00e8e7c43bbfdeb4cc58c3"
+};
+const SYNC_KEY = 'chyron-filestore-v1';
+const SYNC_INTERVAL = 3000;
+let _lastSyncHash = '';
+let _syncLoop = null;
+let _fbApp = null;
+let _fbDb = null;
+let _fbListener = null;
+
+function firebaseInit(){
+  try{
+    if(!firebase||!firebase.apps) return;
+    if(firebase.apps.length===0) _fbApp=firebase.initializeApp(FIREBASE_CONFIG);
+    else _fbApp=firebase.apps[0];
+    _fbDb=firebase.database(_fbApp);
+    console.log('✓ Firebase conectado');
+    firebaseStartListener();
+  }catch(e){ console.warn('Firebase init error:',e); }
+}
+
+function firebaseStartListener(){
+  if(!_fbDb) return;
+  if(_fbListener) _fbDb.ref(SYNC_KEY).off('value',_fbListener);
+  _fbListener=_fbDb.ref(SYNC_KEY).on('value',function(snap){
+    try{
+      const data=snap.val();
+      if(!data) return;
+      const parsed=typeof data==='string'?JSON.parse(data):data;
+      if(!parsed||!parsed.ts) return;
+      const hash=parsed.ts+'';
+      if(hash===_lastSyncHash) return;
+      _lastSyncHash=hash;
+      // Don't overwrite if this tab just pushed
+      if(parsed.ts && (Date.now()-parsed.ts)<500) return;
+      if(parsed.fileStore) Object.assign(fileStore,parsed.fileStore);
+      if(parsed.PERSONAL_DB) Object.assign(PERSONAL_DB,parsed.PERSONAL_DB);
+      if(parsed.bqr_notas) Object.assign(bqr_notas,parsed.bqr_notas);
+      renderFilesList();updateHeaderCounts();updateReporteBadge();
+    }catch(e){ console.warn('Firebase pull error:',e); }
+  });
+}
+let _isSyncing=false;
+
+function quickHash(obj){const s=JSON.stringify(obj);let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return h.toString(36);}
+
+async function syncPush(){
+  if(!_fbDb){return;}
+  if(_isSyncing)return;_isSyncing=true;
+  try{
+    const ts=Date.now();
+    _lastSyncHash=ts+'';
+    const payload={fileStore,PERSONAL_DB,bqr_notas,ts};
+    await _fbDb.ref(SYNC_KEY).set(payload);
+  }catch(e){console.warn('syncPush error:',e);}
+  _isSyncing=false;
+}
+
+async function syncPull(){
+  // Handled by Firebase real-time listener (firebaseStartListener)
+  // This function kept for compatibility
+}
+
+async function syncAfterChange(){await syncPush();_lastSyncHash=quickHash(JSON.stringify({fileStore,PERSONAL_DB,bqr_notas,ts:0}));}
+
+// ════════════════════════════════════════════════════════
+// SISTEMA DE REPORTE DE EMISIÓN
+// ════════════════════════════════════════════════════════
+const REPORTE_KEY='tp_reporte_v1';
+
+function reporteLoad(){
+  try{const r=localStorage.getItem(REPORTE_KEY);if(r)return JSON.parse(r);}catch(e){}
+  return[];
+}
+function reporteSave(data){localStorage.setItem(REPORTE_KEY,JSON.stringify(data));}
+
+function reporteRegistrar(entry){
+  const data=reporteLoad();
+  const now=new Date();
+  data.push({
+    ...entry,
+    fecha:now.toLocaleDateString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit'}),
+    hora:now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    ts:now.getTime()
+  });
+  reporteSave(data);
+  updateReporteBadge();
+}
+
+function updateReporteBadge(){
+  const badge=document.getElementById('nav-reporte-badge');
+  if(!badge)return;
+  const data=reporteLoad();
+  badge.textContent=data.length>0?`${data.length}`:'0';
+  badge.style.color=data.length>0?'var(--green)':'';
+  badge.style.background=data.length>0?'rgba(34,197,94,.1)':'';
+  badge.style.borderColor=data.length>0?'rgba(34,197,94,.25)':'';
+}
+
+function reporteLimpiar(){
+  if(!confirm('⚠ ¿Limpiar TODO el registro de créditos exportados? Esta acción no se puede deshacer.'))return;
+  reporteSave([]);
+  updateReporteBadge();
+  render();
+  showToast('✓ Registro de reporte limpiado','ok');
+}
+
+function reporteLimpiarFecha(fecha){
+  if(!confirm(`¿Limpiar todos los registros del ${fecha}?`))return;
+  const data=reporteLoad().filter(e=>e.fecha!==fecha);
+  reporteSave(data);
+  updateReporteBadge();
+  render();
+  showToast(`✓ Registros del ${fecha} eliminados`,'ok');
+}
+
+function renderReporte(){
+  const data=reporteLoad();
+  const byFecha={};
+  data.forEach(e=>{if(!byFecha[e.fecha])byFecha[e.fecha]=[];byFecha[e.fecha].push(e);});
+  const fechas=Object.keys(byFecha).sort((a,b)=>b.localeCompare(a));
+  const tipoColor={bannerqr:'var(--tp-teal)',personal:'var(--tp-green)',titular:'var(--tp-red)',macro:'var(--tp-yellow)'};
+
+  let html=`
+    <div class="page-header">
+      <div>
+        <div class="page-title">REPORTE DE EMISIÓN</div>
+        <div class="page-meta">Registro automático de todos los créditos exportados — ${data.length} registros totales</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-gen" style="background:#3a8f3a;box-shadow:0 4px 16px rgba(92,184,92,.3);" onclick="reporteExportarExcel()">📊 Exportar Excel (.xlsx)</button>
+        <button class="btn-clear" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="reporteLimpiar()">🗑 Limpiar todo el registro</button>
+      </div>
+    </div>`;
+
+  if(fechas.length===0){
+    html+=`<div class="empty-state"><div class="empty-ico">📋</div><p>No hay créditos registrados aún.<br>Genera archivos .pbm para ver el reporte aquí.</p></div>`;
+    return html;
+  }
+
+  fechas.forEach(fecha=>{
+    const entries=byFecha[fecha];
+    const byNota={};
+    entries.forEach(e=>{
+      const key=e.tipo==='bannerqr'?`NOTA ${e.nota}`:(e.tipo==='personal'?'PERSONAL':(e.tipo==='titular'?'TITULARES':'MACROS'));
+      if(!byNota[key])byNota[key]=[];
+      byNota[key].push(e);
+    });
+
+    html+=`<div style="background:var(--s1);border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:var(--s2);border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;color:var(--accent2);">📅 ${fecha}</div>
+          <div style="font-size:10px;color:var(--text3);background:var(--s3);border:1px solid var(--border2);border-radius:5px;padding:2px 9px;font-family:'DM Mono';">${entries.length} crédito(s)</div>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn-sm" style="color:var(--green);border-color:rgba(92,184,92,.3)" onclick="reporteExportarExcelFecha('${fecha}')">📊 Exportar esta fecha</button>
+          <button class="btn-sm" style="color:var(--red);border-color:rgba(239,68,68,.25)" onclick="reporteLimpiarFecha('${fecha}')">🗑 Limpiar</button>
+        </div>
+      </div>`;
+
+    Object.entries(byNota).forEach(([nota,notaEntries])=>{
+      const sample=notaEntries[0];
+      const col=tipoColor[sample.tipo]||'var(--accent2)';
+      html+=`<div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:${col};padding:2px 9px;border-radius:4px;background:rgba(0,0,0,.08);border:1px solid ${col}33;">${nota}</div>
+          <div style="font-size:10px;color:var(--text3);">${notaEntries.length} archivo(s)</div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:700px;">
+          <thead>
+            <tr style="font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);">
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Archivo</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Nombre</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Cargo / L1</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Temático / L2</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Ubicación</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">QR</th>
+              <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);">Hora</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      notaEntries.forEach((e,ei)=>{
+        html+=`<tr style="background:${ei%2===0?'var(--s2)':'transparent'};">
+          <td style="padding:7px 8px;font-family:'DM Mono';font-size:10px;color:var(--accent2);font-weight:600;white-space:nowrap;">${e.archivo}</td>
+          <td style="padding:7px 8px;color:var(--text);font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.nombre}">${e.nombre||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.cargo}">${e.cargo||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.tematico}">${e.tematico||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.ubicacion}">${e.ubicacion||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text3);font-size:10px;white-space:nowrap;">${e.qr||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text3);font-family:'DM Mono';font-size:10px;white-space:nowrap;">${e.hora}</td>
+        </tr>`;
+      });
+      html+=`</tbody></table></div></div>`;
+    });
+    html+=`</div>`;
+  });
+  return html;
+}
+
+// ── CARGA DINÁMICA DE SheetJS ──
+function _loadSheetJS(cb){
+  if(window.XLSX){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb;s.onerror=()=>showToast('⚠ No se pudo cargar SheetJS','warn');
+  document.head.appendChild(s);
+}
+
+function reporteExportarExcel(){
+  const data=reporteLoad();
+  if(!data.length){showToast('⚠ No hay registros para exportar','warn');return;}
+  _loadSheetJS(()=>{
+    const ahora=new Date();
+    const fname=`Reporte_Emision_TP_${ahora.toLocaleDateString('es-CO').replace(/\//g,'-')}_${ahora.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}).replace(/[: ]/g,'')}.xlsx`;
+    _reporteGenerarXLSX(data,fname,'REPORTE COMPLETO');
+    showToast('✓ Reporte Excel exportado — revisa tu carpeta de descargas','ok');
+  });
+}
+
+function reporteExportarExcelFecha(fecha){
+  const data=reporteLoad().filter(e=>e.fecha===fecha);
+  if(!data.length){showToast('⚠ No hay registros para esta fecha','warn');return;}
+  _loadSheetJS(()=>{
+    const fname=`Reporte_TP_${fecha.replace(/\//g,'-')}.xlsx`;
+    _reporteGenerarXLSX(data,fname,`EMISIÓN ${fecha}`);
+    showToast(`✓ Reporte del ${fecha} exportado`,'ok');
+  });
+}
+
+function _reporteGenerarXLSX(data,filename,titulo){
+  const XLS=window.XLSX;
+  const wb=XLS.utils.book_new();
+  const tipoLabel={bannerqr:'Banner QR',personal:'Personal',titular:'Titular',macro:'Macro'};
+
+  // ── PALETA: 20 colores distintos para notas 1–20 (cicla si hay más) ──
+  const NOTA_COLORS=[
+    '1A6B8A','C0392B','1E8449','7D3C98','D35400',
+    '1A5276','117A65','784212','4A235A','1B4F72',
+    '6E2F1A','145A32','512E5F','7B241C','0E6655',
+    '6B2737','1A3A4A','4D5656','283747','212F3D'
+  ];
+  // Color claro de fondo derivado del color de nota (para filas alternas)
+  const NOTA_LIGHT=[
+    'D6EAF8','FADBD8','D5F5E3','E8DAEF','FAE5D3',
+    'D6EAF8','D1F2EB','FDEBD0','F5EEF8','D6EAF8',
+    'F9EBEA','D5F5E3','F5EEF8','FADBD8','D1F2EB',
+    'FDEDEC','D6EAF8','EAECEE','EBF5FB','EBF5FB'
+  ];
+  const NOTA_MED=[
+    'AED6F1','F1948A','A9DFBF','D2B4DE','F0B27A',
+    'AED6F1','A2D9CE','F8C471','D7BDE2','AED6F1',
+    'F0B27A','A9DFBF','D2B4DE','F1948A','A2D9CE',
+    'F1948A','AED6F1','CCD1D1','AED6F1','AED6F1'
+  ];
+
+  function notaColorIdx(notaVal){
+    const n=parseInt(notaVal);return isNaN(n)?0:(n-1)%NOTA_COLORS.length;
+  }
+
+  // Agrupar por fecha → nota
+  const byFecha={};
+  data.forEach(e=>{if(!byFecha[e.fecha])byFecha[e.fecha]=[];byFecha[e.fecha].push(e);});
+  const fechas=Object.keys(byFecha).sort((a,b)=>b.localeCompare(a));
+
+  // ── HELPERS DE ESTILO ──
+  const S={
+    title:(color)=>({font:{name:'Calibri',sz:16,bold:true,color:{rgb:color||'009DB5'}},fill:{fgColor:{rgb:'06101A'}},alignment:{horizontal:'center',vertical:'center'}}),
+    sub:()=>({font:{name:'Calibri',sz:10,color:{rgb:'7AA4C0'}},fill:{fgColor:{rgb:'0B1929'}},alignment:{horizontal:'center'}}),
+    colHdr:(bg,fg)=>({font:{name:'Calibri',sz:10,bold:true,color:{rgb:fg||'FFFFFF'}},fill:{fgColor:{rgb:bg}},alignment:{horizontal:'center',vertical:'center'},border:{top:{style:'thin',color:{rgb:bg}},bottom:{style:'medium',color:{rgb:bg}}}}),
+    notaHdr:(bg)=>({font:{name:'Calibri',sz:12,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:bg}},alignment:{horizontal:'left',vertical:'center'}}),
+    dataEven:(bg,accent,c)=>({font:{name:'Calibri',sz:10,bold:c===0,color:{rgb:c===0?accent:'2C3E50'}},fill:{fgColor:{rgb:bg}},alignment:{vertical:'center',wrapText:false}}),
+    dataOdd:(accent,c)=>({font:{name:'Calibri',sz:10,bold:c===0,color:{rgb:c===0?accent:'2C3E50'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{vertical:'center',wrapText:false}}),
+    sep:()=>({fill:{fgColor:{rgb:'E8ECF0'}}}),
+  };
+
+  function applyRowStyle(ws,r,ncols,styleFn){for(let c=0;c<ncols;c++){const cell=XLS.utils.encode_cell({r,c});if(!ws[cell])ws[cell]={t:'s',v:''};ws[cell].s=styleFn(c);}}
+  function addMerge(ws,r1,c1,r2,c2){if(!ws['!merges'])ws['!merges']=[];ws['!merges'].push({s:{r:r1,c:c1},e:{r:r2,c:c2}});}
+
+  // ══════════════════════════════════════════
+  // HOJA RESUMEN — todas las fechas, por nota
+  // ══════════════════════════════════════════
+  const COLS_RESUMEN=11;
+  const HDR_RES=['NOTA','ARCHIVO','NOMBRE','CARGO / LÍNEA 1','TEMÁTICO / LÍNEA 2','UBICACIÓN','QR','FECHA','HORA','TIPO','USUARIO'];
+  const COL_W_RES=[10,14,26,26,26,20,10,12,10,12,12];
+
+  const wsResData=[[titulo||'REPORTE DE EMISIÓN — TP NOTICIAS'],[`Generado: ${new Date().toLocaleString('es-CO')}   ·   ${data.length} créditos totales`],[]];
+  // Agrupar por nota para el resumen (orden: notas numéricas asc, luego personal/titular/macro)
+  const byNotaGlobal={};
+  data.forEach(e=>{
+    const key=e.tipo==='bannerqr'?String(e.nota):(e.tipo==='personal'?'Personal':(e.tipo==='titular'?'Titular':'Macro'));
+    if(!byNotaGlobal[key])byNotaGlobal[key]=[];
+    byNotaGlobal[key].push(e);
+  });
+  const notaKeys=Object.keys(byNotaGlobal).sort((a,b)=>{const na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;if(!isNaN(na))return-1;if(!isNaN(nb))return 1;return a.localeCompare(b);});
+
+  const resGroupMeta=[];
+  notaKeys.forEach(nk=>{
+    const entries=byNotaGlobal[nk];
+    const isNumNota=!isNaN(parseInt(nk));
+    const ci=isNumNota?notaColorIdx(nk):NOTA_COLORS.length-1;
+    const notaLabel=isNumNota?`NOTA ${nk}`:nk.toUpperCase();
+    resGroupMeta.push({nk,ci,notaLabel,startRow:wsResData.length,count:entries.length,entries});
+    wsResData.push([notaLabel,'','','','','','','','','','']);
+    wsResData.push(HDR_RES);
+    entries.forEach(e=>wsResData.push([
+      isNumNota?`Nota ${nk}`:nk,e.archivo,e.nombre,e.cargo,e.tematico,e.ubicacion,e.qr,e.fecha,e.hora,(tipoLabel[e.tipo]||e.tipo),e.usuario
+    ]));
+    wsResData.push(['','','','','','','','','','','']); // fila separadora
+  });
+
+  const wsRes=XLS.utils.aoa_to_sheet(wsResData);
+  wsRes['!cols']=COL_W_RES.map(w=>({wch:w}));
+  addMerge(wsRes,0,0,0,COLS_RESUMEN-1);
+  addMerge(wsRes,1,0,1,COLS_RESUMEN-1);
+
+  // Estilos título/sub
+  for(let c=0;c<COLS_RESUMEN;c++){
+    const r0=XLS.utils.encode_cell({r:0,c});const r1=XLS.utils.encode_cell({r:1,c});
+    if(!wsRes[r0])wsRes[r0]={t:'s',v:''};wsRes[r0].s=S.title();
+    if(!wsRes[r1])wsRes[r1]={t:'s',v:''};wsRes[r1].s=S.sub();
+  }
+  // Estilos grupos
+  resGroupMeta.forEach(g=>{
+    const{ci,startRow,count}=g;
+    const notaBg=NOTA_COLORS[ci];const notaLight=NOTA_LIGHT[ci];const notaMed=NOTA_MED[ci];
+    // fila nota header
+    addMerge(wsRes,startRow,0,startRow,COLS_RESUMEN-1);
+    applyRowStyle(wsRes,startRow,COLS_RESUMEN,()=>S.notaHdr(notaBg));
+    // fila encabezados columnas
+    applyRowStyle(wsRes,startRow+1,COLS_RESUMEN,()=>S.colHdr(notaMed,'1A1A2E'));
+    // filas datos
+    for(let i=0;i<count;i++){
+      const r=startRow+2+i;const even=i%2===0;
+      applyRowStyle(wsRes,r,COLS_RESUMEN,c=>even?S.dataEven(notaLight,notaBg,c):S.dataOdd(notaBg,c));
+    }
+    // fila separadora
+    applyRowStyle(wsRes,startRow+2+count,COLS_RESUMEN,()=>S.sep());
+  });
+
+  const rowHeights=[{hpx:30},{hpx:18},{hpx:8}];
+  wsRes['!rows']=rowHeights;
+  XLS.utils.book_append_sheet(wb,wsRes,'📋 Resumen');
+
+  // ══════════════════════════════════════════
+  // UNA HOJA POR NOTA (solo Banner QR)
+  // ══════════════════════════════════════════
+  const COLS_NOTA=7;
+  const HDR_NOTA=['ARCHIVO','NOMBRE','CARGO','TEMÁTICO','UBICACIÓN','QR','HORA'];
+  const COL_W_NOTA=[14,28,28,28,22,10,12];
+
+  notaKeys.filter(nk=>!isNaN(parseInt(nk))).forEach(nk=>{
+    const entries=byNotaGlobal[nk];
+    const ci=notaColorIdx(nk);
+    const notaBg=NOTA_COLORS[ci];const notaLight=NOTA_LIGHT[ci];const notaMed=NOTA_MED[ci];
+    const sheetData=[
+      [`NOTA ${nk}  —  ${entries.length} crédito(s)`],
+      [`Generado: ${new Date().toLocaleString('es-CO')}`],
+      [],
+      HDR_NOTA
+    ];
+    entries.forEach(e=>sheetData.push([e.archivo,e.nombre,e.cargo,e.tematico,e.ubicacion,e.qr,e.hora]));
+
+    const ws=XLS.utils.aoa_to_sheet(sheetData);
+    ws['!cols']=COL_W_NOTA.map(w=>({wch:w}));
+    addMerge(ws,0,0,0,COLS_NOTA-1);
+    addMerge(ws,1,0,1,COLS_NOTA-1);
+
+    // título y sub
+    for(let c=0;c<COLS_NOTA;c++){
+      const r0=XLS.utils.encode_cell({r:0,c});const r1=XLS.utils.encode_cell({r:1,c});
+      if(!ws[r0])ws[r0]={t:'s',v:''};ws[r0].s=S.title(notaBg);
+      if(!ws[r1])ws[r1]={t:'s',v:''};ws[r1].s=S.sub();
+    }
+    // encabezados col (fila 4 = r:3)
+    applyRowStyle(ws,3,COLS_NOTA,()=>S.colHdr(notaMed,'1A1A2E'));
+    // filas datos (desde r:4)
+    entries.forEach((_,i)=>{
+      const r=4+i;const even=i%2===0;
+      applyRowStyle(ws,r,COLS_NOTA,c=>even?S.dataEven(notaLight,notaBg,c):S.dataOdd(notaBg,c));
+    });
+    ws['!rows']=[{hpx:30},{hpx:16},{hpx:8},{hpx:20}];
+    const sheetName=`Nota ${nk}`.slice(0,31);
+    XLS.utils.book_append_sheet(wb,ws,sheetName);
+  });
+
+  // Hoja por tipo no-nota (Personal, Titular, Macro) si existen
+  ['Personal','Titular','Macro'].forEach(tipo=>{
+    const tKey=tipo;
+    if(!byNotaGlobal[tKey]||!byNotaGlobal[tKey].length)return;
+    const entries=byNotaGlobal[tKey];
+    const tc={Personal:'5CB85C',Titular:'E63950',Macro:'F5A623'}[tipo]||'009DB5';
+    const tl={Personal:'D5F5E3',Titular:'FADBD8',Macro:'FEF9E7'}[tipo]||'EAF2FF';
+    const tm={Personal:'A9DFBF',Titular:'F1948A',Macro:'F9E79F'}[tipo]||'AED6F1';
+    const sheetData=[[`${tipo.toUpperCase()}  —  ${entries.length} crédito(s)`],[`Generado: ${new Date().toLocaleString('es-CO')}`],[],['ARCHIVO','NOMBRE','CARGO','FECHA','HORA']];
+    entries.forEach(e=>sheetData.push([e.archivo,e.nombre,e.cargo,e.fecha,e.hora]));
+    const ws=XLS.utils.aoa_to_sheet(sheetData);
+    ws['!cols']=[{wch:14},{wch:28},{wch:28},{wch:14},{wch:12}];
+    addMerge(ws,0,0,0,4);addMerge(ws,1,0,1,4);
+    for(let c=0;c<5;c++){
+      const r0=XLS.utils.encode_cell({r:0,c});const r1=XLS.utils.encode_cell({r:1,c});
+      if(!ws[r0])ws[r0]={t:'s',v:''};ws[r0].s=S.title(tc);
+      if(!ws[r1])ws[r1]={t:'s',v:''};ws[r1].s=S.sub();
+    }
+    applyRowStyle(ws,3,5,()=>S.colHdr(tm,'1A1A2E'));
+    entries.forEach((_,i)=>{const r=4+i;const even=i%2===0;applyRowStyle(ws,r,5,c=>even?S.dataEven(tl,tc,c):S.dataOdd(tc,c));});
+    ws['!rows']=[{hpx:30},{hpx:16},{hpx:8},{hpx:20}];
+    XLS.utils.book_append_sheet(wb,ws,tipo.slice(0,31));
+  });
+
+  wb.Props={Title:'Reporte Emisión TP Noticias',Author:'Chyron Prime',CreatedDate:new Date()};
+  XLS.writeFile(wb,filename,{bookType:'xlsx',type:'binary',cellStyles:true});
+}
+
+updateReporteBadge();
+
+updateHeaderCounts();
+
+// Init Firebase
+firebaseInit();
+</script>
+</body>
+</html>
