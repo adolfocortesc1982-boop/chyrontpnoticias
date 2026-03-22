@@ -350,6 +350,7 @@ function firebaseInitReporte(){
     console.log('Executing nuevo dia from remote signal');
     // Clear locally without pushing to Firebase again
     Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
+  fileStoreInit();
     Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
     bqr_nota=1;
     localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
@@ -419,7 +420,7 @@ function completeLogin(found){
   document.getElementById('loginError').style.color='var(--red)';
   const ab=document.getElementById('hdrBtnAdmin');if(ab)ab.style.display=found.role==='admin'?'':'none';
   const ut=document.getElementById('hdrUserTag');if(ut)ut.textContent=found.user.toUpperCase();
-  render();startSyncLoop();if(!_fbDb)firebaseInit();
+  render();if(!_fbDb)firebaseInit();else{firebaseStartListener();firebaseInitUsers();firebaseInitReporte();}
 }
 
 function logout(){stopSyncLoop();if(currentUser)releaseSession(currentUser.user);stopHeartbeat();currentUser=null;document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';document.getElementById('loginError').style.display='none';document.getElementById('loginOverlay').style.display='flex';}
@@ -1216,11 +1217,21 @@ async function downloadSession(){
 }
 
 function updateHeaderCounts(){
-  const curr=getCurrentFiles().length;const all=getAllFiles().length;
-  const cc=document.getElementById('hdrCountCurrent');const ca=document.getElementById('hdrCountAll');
-  if(cc)cc.textContent=curr;if(ca)ca.textContent=all;
-  const btnC=document.getElementById('hdrBtnCurrent');const btnA=document.getElementById('hdrBtnAll');
-  if(btnC)btnC.disabled=curr===0;if(btnA)btnA.disabled=all===0;
+  try{
+    const curr=(getCurrentFiles()||[]).length;const all=(getAllFiles()||[]).length;
+    const cc=document.getElementById('hdrCountCurrent');const ca=document.getElementById('hdrCountAll');
+    if(cc)cc.textContent=curr;if(ca)ca.textContent=all;
+    const btnC=document.getElementById('hdrBtnCurrent');const btnA=document.getElementById('hdrBtnAll');
+    if(btnC)btnC.disabled=curr===0;if(btnA)btnA.disabled=all===0;
+    SCENES.forEach(function(s){
+      const b=document.getElementById('nav-badge-'+s.id); if(!b) return;
+      const n=(fileStore[s.id]||[]).length;
+      b.textContent=n>0?n+' pbm':'—';
+      b.style.color=n>0?'var(--green)':'';
+      b.style.background=n>0?'rgba(34,197,94,.1)':'';
+      b.style.borderColor=n>0?'rgba(34,197,94,.25)':'';
+    });
+  }catch(e){}
 }
 
 // ── TOAST ──
