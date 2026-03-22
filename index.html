@@ -343,12 +343,18 @@ function firebaseInitReporte(){
   // Listen for nuevo dia signal
   _fbDb.ref('tp_nuevo_dia').on('value',function(snap){
     var data=snap.val();
+    console.log('tp_nuevo_dia received:', data);
     if(!data||!data.ts) return;
-    // Only react if signal is from another tab
     if(data.by===TAB_ID) return;
-    // Only react to recent signals (last 10 seconds)
-    if(Date.now()-data.ts>10000) return;
-    ejecutarNuevoDia();
+    if(Date.now()-data.ts>30000) return; // 30 seconds window
+    console.log('Executing nuevo dia from remote signal');
+    // Clear locally without pushing to Firebase again
+    Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
+    Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
+    bqr_nota=1;
+    localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
+    render();
+    showToast('✓ Nuevo día iniciado por otro equipo','ok');
   });
 }
 function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
