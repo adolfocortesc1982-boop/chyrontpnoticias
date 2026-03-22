@@ -1350,7 +1350,8 @@ function firebaseStartListener(){
           var exist=new Set((fileStore[sid]||[]).map(function(f){return f.name;}));
           inc.forEach(function(f){
             if(!exist.has(f.name)){
-              reporteRegistrar({tipo:sid,nota:sid,archivo:f.name,nombre:f.desc||f.name,cargo:'',tematico:'',ubicacion:'',qr:'',usuario:'sync'});
+              var tipoMap={'titulares':'titular','macros':'macro','personal':'personal','bannerqr':'bannerqr'};
+              reporteRegistrar({tipo:tipoMap[sid]||sid,nota:sid,archivo:f.name,nombre:f.desc||f.name,cargo:'',tematico:'',ubicacion:'',qr:'',usuario:'sync'});
             }
           });
         });
@@ -1427,7 +1428,7 @@ function reporteSave(data){
 function reporteRegistrar(entry){
   const data=reporteLoad();
   // Avoid duplicates — check if this file is already registered
-  if(data.some(function(r){return r.archivo===entry.archivo&&r.nota===entry.nota;})) return;
+  if(data.some(function(r){return r.archivo===entry.archivo&&r.tipo===entry.tipo;})) return;
   const now=new Date();
   data.push({
     ...entry,
