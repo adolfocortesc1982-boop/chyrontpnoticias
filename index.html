@@ -1286,6 +1286,8 @@ function reporteSave(data){
 
 function reporteRegistrar(entry){
   const data=reporteLoad();
+  // Avoid duplicates — check if this file is already registered
+  if(data.some(function(r){return r.archivo===entry.archivo&&r.tipo===entry.tipo;})) return;
   const now=new Date();
   data.push({
     ...entry,
