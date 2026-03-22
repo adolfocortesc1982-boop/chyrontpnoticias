@@ -423,7 +423,17 @@ function completeLogin(found){
   render();if(!_fbDb)firebaseInit();else{firebaseStartListener();firebaseInitUsers();firebaseInitReporte();}
 }
 
-function logout(){stopSyncLoop();if(currentUser)releaseSession(currentUser.user);stopHeartbeat();currentUser=null;document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';document.getElementById('loginError').style.display='none';document.getElementById('loginOverlay').style.display='flex';}
+function logout(){
+  if(currentUser) releaseSession(currentUser.user);
+  stopHeartbeat();
+  currentUser=null;
+  // Stop Firebase listeners
+  if(_fbDb&&_fbListener){_fbDb.ref(SYNC_KEY).off('value',_fbListener);_fbListener=null;}
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+}
 function forceLogout(msg){stopHeartbeat();currentUser=null;document.getElementById('loginOverlay').style.display='flex';const e=document.getElementById('loginError');e.textContent=msg;e.style.color='var(--accent2)';e.style.display='block';document.getElementById('loginUser').value='';document.getElementById('loginPass').value='';}
 
 // ── ADMIN ──
