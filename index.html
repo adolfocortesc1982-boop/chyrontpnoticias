@@ -1231,7 +1231,7 @@ function firebaseStartListener(){
       }
       if(parsed.PERSONAL_DB) Object.assign(PERSONAL_DB,parsed.PERSONAL_DB);
       if(parsed.bqr_notas) Object.assign(bqr_notas,parsed.bqr_notas);
-      renderFilesList();updateHeaderCounts();updateReporteBadge();
+      render();updateHeaderCounts();updateReporteBadge();
     }catch(e){ console.warn('Firebase pull error:',e); }
   });
 }
