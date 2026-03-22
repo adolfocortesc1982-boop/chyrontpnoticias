@@ -294,8 +294,32 @@ function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-th
 // ── SESIÓN ÚNICA ──
 const TAB_ID=Math.random().toString(36).slice(2)+Date.now().toString(36);
 const SESSION_CHANNEL=new BroadcastChannel('tp_session');
-function getUsers(){try{const r=localStorage.getItem('tp_users');if(r)return JSON.parse(r);}catch(e){}const d=[{user:'admin',pass:'admin2026',role:'admin'}];localStorage.setItem('tp_users',JSON.stringify(d));return d;}
-function saveUsers(u){localStorage.setItem('tp_users',JSON.stringify(u));}
+// ── USUARIOS — sincronizados via Firebase ──
+var _usersCache=null;
+function getUsers(){
+  if(_usersCache) return _usersCache;
+  try{const r=localStorage.getItem('tp_users');if(r){_usersCache=JSON.parse(r);return _usersCache;}}catch(e){}
+  const d=[{user:'admin',pass:'admin2024',role:'admin'}];
+  localStorage.setItem('tp_users',JSON.stringify(d));
+  _usersCache=d; return d;
+}
+function saveUsers(u){
+  _usersCache=u;
+  localStorage.setItem('tp_users',JSON.stringify(u));
+  // Sync to Firebase
+  if(_fbDb){
+    _fbDb.ref('tp_users').set(u).catch(function(e){console.warn('saveUsers firebase error:',e);});
+  }
+}
+function firebaseInitUsers(){
+  if(!_fbDb) return;
+  _fbDb.ref('tp_users').on('value',function(snap){
+    var data=snap.val();
+    if(!data||!Array.isArray(data)) return;
+    _usersCache=data;
+    localStorage.setItem('tp_users',JSON.stringify(data));
+  });
+}
 function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
 function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
 function claimSession(u){const s=getSessions();s[u]=TAB_ID;saveSessions(s);SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});}
@@ -1174,6 +1198,7 @@ function firebaseInit(){
     _fbDb=firebase.database(_fbApp);
     console.log('✓ Firebase conectado');
     firebaseStartListener();
+    firebaseInitUsers();
   }catch(e){ console.warn('Firebase init error:',e); }
 }
 
