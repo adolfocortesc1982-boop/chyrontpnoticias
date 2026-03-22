@@ -320,6 +320,15 @@ function firebaseInitUsers(){
     localStorage.setItem('tp_users',JSON.stringify(data));
   });
 }
+function firebaseInitReporte(){
+  if(!_fbDb) return;
+  _fbDb.ref('tp_reporte').on('value',function(snap){
+    var data=snap.val();
+    if(!data||!Array.isArray(data)) return;
+    localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
+    updateReporteBadge();
+  });
+}
 function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
 function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
 function claimSession(u){const s=getSessions();s[u]=TAB_ID;saveSessions(s);SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});}
@@ -1199,6 +1208,7 @@ function firebaseInit(){
     console.log('✓ Firebase conectado');
     firebaseStartListener();
     firebaseInitUsers();
+    firebaseInitReporte();
   }catch(e){ console.warn('Firebase init error:',e); }
 }
 
@@ -1214,8 +1224,8 @@ function firebaseStartListener(){
       const hash=parsed.ts+'';
       if(hash===_lastSyncHash) return;
       _lastSyncHash=hash;
-      // Don't overwrite if this tab just pushed
-      if(parsed.ts && (Date.now()-parsed.ts)<500) return;
+      // Only skip if this exact tab just pushed (same TAB_ID)
+      if(parsed.pushedBy && parsed.pushedBy===TAB_ID) return;
       if(parsed.fileStore){
         // Register new files in report
         Object.keys(parsed.fileStore).forEach(function(sid){
@@ -1245,7 +1255,7 @@ async function syncPush(){
   try{
     const ts=Date.now();
     _lastSyncHash=ts+'';
-    const payload={fileStore,PERSONAL_DB,bqr_notas,ts};
+    const payload={fileStore,PERSONAL_DB,bqr_notas,ts,pushedBy:TAB_ID};
     await _fbDb.ref(SYNC_KEY).set(payload);
   }catch(e){console.warn('syncPush error:',e);}
   _isSyncing=false;
@@ -1267,7 +1277,12 @@ function reporteLoad(){
   try{const r=localStorage.getItem(REPORTE_KEY);if(r)return JSON.parse(r);}catch(e){}
   return[];
 }
-function reporteSave(data){localStorage.setItem(REPORTE_KEY,JSON.stringify(data));}
+function reporteSave(data){
+  localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
+  if(_fbDb){
+    _fbDb.ref('tp_reporte').set(data).catch(function(e){console.warn('reporteSave firebase error:',e);});
+  }
+}
 
 function reporteRegistrar(entry){
   const data=reporteLoad();
