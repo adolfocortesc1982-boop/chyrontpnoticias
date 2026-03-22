@@ -326,6 +326,8 @@ function firebaseInitReporte(){
   _fbDb.ref('tp_reporte').on('value',function(snap){
     var data=snap.val();
     if(!data||!Array.isArray(data)) return;
+    // Skip if we pushed this ourselves within last 3 seconds
+    if(Date.now()-_reportePushedAt<3000) return;
     // Deduplicate: keep only first occurrence of each archivo+tipo combo
     var seen={};
     var deduped=data.filter(function(r){
@@ -1426,9 +1428,11 @@ function reporteLoad(){
   try{const r=localStorage.getItem(REPORTE_KEY);if(r)return JSON.parse(r);}catch(e){}
   return[];
 }
+var _reportePushedAt=0;
 function reporteSave(data){
   localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
   if(_fbDb){
+    _reportePushedAt=Date.now();
     _fbDb.ref('tp_reporte').set(data).catch(function(e){console.warn('reporteSave firebase error:',e);});
   }
 }
