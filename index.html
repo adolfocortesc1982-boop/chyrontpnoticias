@@ -374,7 +374,12 @@ function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
 function claimSession(u){
   const s=getSessions();s[u]=TAB_ID;saveSessions(s);
   SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});
-  if(_fbDb) _fbDb.ref('tp_sessions/'+u).set(TAB_ID);
+  if(_fbDb){
+    var ref=_fbDb.ref('tp_sessions/'+u);
+    ref.set(TAB_ID);
+    // Auto-remove when browser closes or disconnects
+    ref.onDisconnect().remove();
+  }
 }
 function releaseSession(u){
   const s=getSessions();
@@ -449,7 +454,25 @@ function forceLogout(msg){stopHeartbeat();currentUser=null;document.getElementBy
 
 // ── ADMIN ──
 let adminCurrentTab='list';
-function openAdmin(){if(!currentUser||currentUser.role!=='admin')return;document.getElementById('adminUserLabel').textContent=currentUser.user;switchAdminTab('list');document.getElementById('adminOverlay').style.display='flex';}
+function openAdmin(){
+  if(!currentUser||currentUser.role!=='admin') return;
+  document.getElementById('adminUserLabel').textContent=currentUser.user;
+  document.getElementById('adminOverlay').style.display='flex';
+  // Refresh sessions from Firebase before showing
+  if(_fbDb){
+    _fbDb.ref('tp_sessions').once('value',function(snap){
+      var fbSessions=snap.val()||{};
+      var local=getSessions();
+      // Overwrite local with Firebase (Firebase is source of truth)
+      Object.keys(local).forEach(function(k){ delete local[k]; });
+      Object.assign(local,fbSessions);
+      saveSessions(local);
+      switchAdminTab('list');
+    });
+  } else {
+    switchAdminTab('list');
+  }
+}
 function closeAdmin(){document.getElementById('adminOverlay').style.display='none';}
 function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();}
 
