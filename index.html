@@ -973,12 +973,12 @@ function generatePersonal(){
     const xml2=buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',[{id:'Text 1 Nombre Text',val:n2},{id:'Text 2 Cargo Text',val:c2}]);
     addOrReplace({name:`${seqId}a.pbm`,xml:xml1,desc:n1,seqId,dbId:pers_id});
     addOrReplace({name:`${seqId}b.pbm`,xml:xml2,desc:n2,seqId,dbId:pers_id});
-    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}a.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
-    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}b.pbm`,nombre:n2,cargo:c2,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'personal',nota:'personal',archivo:`${seqId}a.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'personal',nota:'personal',archivo:`${seqId}b.pbm`,nombre:n2,cargo:c2,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
     showToast(`✓ ${seqId}a.pbm + ${seqId}b.pbm generados`,'ok');
   }else{
     addOrReplace({name:`${seqId}.pbm`,xml:xml1,desc:n1,seqId,dbId:pers_id});
-    reporteRegistrar({tipo:'personal',nota:'—',archivo:`${seqId}.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'personal',nota:'personal',archivo:`${seqId}.pbm`,nombre:n1,cargo:c1,tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
     showToast(`✓ ${seqId}.pbm generado`,'ok');
   }
   renderFilesList();updateHeaderCounts();render();syncAfterChange();
@@ -1047,7 +1047,7 @@ function generateTitulares(){
     const num=nextNum;usedNums.add(num);
     const entry={name:`${num}.pbm`,xml:buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\LO MASS5.pbx',[{id:'TITULAR Text',val:t.titular},{id:'Texto de Fondo Text',val:t.fondo}]),desc:t.titular};
     const idx=fileStore.titulares.findIndex(f=>f.name===entry.name);if(idx>=0)fileStore.titulares[idx]=entry;else fileStore.titulares.push(entry);
-    reporteRegistrar({tipo:'titular',nota:'—',archivo:entry.name,nombre:t.titular,cargo:t.fondo||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'titular',nota:'titulares',archivo:entry.name,nombre:t.titular,cargo:t.fondo||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
     nextNum++;
   });
   titulares_list=[{titular:'',fondo:''}];
@@ -1116,7 +1116,7 @@ function generateMacros(){
     const num=nextNum;usedNums.add(num);
     const entry={name:`MACROS_${num}.pbm`,xml:buildXML('I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\MACROS2.pbx',[{id:'TextLine1 Text',val:m.l1},{id:'TextLine2 Text',val:m.l2}]),desc:`${m.l1}${m.l2?' / '+m.l2:''}`};
     const idx=fileStore.macros.findIndex(f=>f.name===entry.name);if(idx>=0)fileStore.macros[idx]=entry;else fileStore.macros.push(entry);
-    reporteRegistrar({tipo:'macro',nota:'—',archivo:entry.name,nombre:m.l1,cargo:m.l2||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+    reporteRegistrar({tipo:'macro',nota:'macros',archivo:entry.name,nombre:m.l1,cargo:m.l2||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
     nextNum++;
   });
   macros_list=[{l1:'',l2:''}];
@@ -1427,7 +1427,7 @@ function reporteSave(data){
 function reporteRegistrar(entry){
   const data=reporteLoad();
   // Avoid duplicates — check if this file is already registered
-  if(data.some(function(r){return r.archivo===entry.archivo&&r.tipo===entry.tipo;})) return;
+  if(data.some(function(r){return r.archivo===entry.archivo&&r.nota===entry.nota;})) return;
   const now=new Date();
   data.push({
     ...entry,
