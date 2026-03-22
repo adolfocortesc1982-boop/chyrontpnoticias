@@ -328,6 +328,11 @@ function firebaseInitReporte(){
     if(!data||!Array.isArray(data)) return;
     localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
     updateReporteBadge();
+    // Re-render reporte page if currently viewing it
+    if(currentUser&&currentPage==='reporte'){
+      var c=document.getElementById('mainContent');
+      if(c) c.innerHTML=renderReporte();
+    }
   });
   // Listen for session changes from other PCs
   _fbDb.ref('tp_sessions').on('value',function(snap){
@@ -1344,17 +1349,7 @@ function firebaseStartListener(){
       // Only skip if this exact tab just pushed (same TAB_ID)
       if(parsed.pushedBy && parsed.pushedBy===TAB_ID) return;
       if(parsed.fileStore){
-        // Register new files in report
-        Object.keys(parsed.fileStore).forEach(function(sid){
-          var inc=parsed.fileStore[sid]||[];
-          var exist=new Set((fileStore[sid]||[]).map(function(f){return f.name;}));
-          inc.forEach(function(f){
-            if(!exist.has(f.name)){
-              var tipoMap={'titulares':'titular','macros':'macro','personal':'personal','bannerqr':'bannerqr'};
-              reporteRegistrar({tipo:tipoMap[sid]||sid,nota:sid,archivo:f.name,nombre:f.desc||f.name,cargo:'',tematico:'',ubicacion:'',qr:'',usuario:'sync'});
-            }
-          });
-        });
+        // Just update fileStore — reporte synced separately via tp_reporte
         Object.assign(fileStore,parsed.fileStore);
       }
       if(parsed.PERSONAL_DB) Object.assign(PERSONAL_DB,parsed.PERSONAL_DB);
@@ -1429,6 +1424,9 @@ function reporteRegistrar(entry){
   const data=reporteLoad();
   // Avoid duplicates — check if this file is already registered
   if(data.some(function(r){return r.archivo===entry.archivo&&r.tipo===entry.tipo;})) return;
+  // Also check if same archivo exists with sync tipo mapping
+  var tipoAlt={'bannerqr':'bannerqr','titulares':'titular','titular':'titulares','macros':'macro','macro':'macros','personal':'personal'};
+  if(data.some(function(r){return r.archivo===entry.archivo&&(r.tipo===tipoAlt[entry.tipo]||entry.tipo===tipoAlt[r.tipo]);})) return;
   const now=new Date();
   data.push({
     ...entry,
