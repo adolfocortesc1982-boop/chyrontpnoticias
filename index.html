@@ -340,6 +340,17 @@ function firebaseInitReporte(){
     saveSessions(localSessions);
     // Don't force logout — session restriction handled at login
   });
+  // Listen for admin kick signal
+  var _kickConnectTime=Date.now();
+  _fbDb.ref('tp_kick').on('value',function(snap){
+    var data=snap.val();
+    if(!data||!data.ts) return;
+    if(data.by===TAB_ID) return;
+    if(data.ts<_kickConnectTime) return;
+    if(currentUser&&data.user===currentUser.user){
+      forceLogout('El administrador cerró tu sesión.');
+    }
+  });
   // Listen for nuevo dia signal — only react to signals after we connected
   var _ndConnectTime=Date.now();
   _fbDb.ref('tp_nuevo_dia').on('value',function(snap){
@@ -505,7 +516,18 @@ function changeMyPass(){
   document.getElementById('myPassCurrent').value='';document.getElementById('myPassNew').value='';document.getElementById('myPassNew2').value='';
 }
 
-function kickUser(username){SESSION_CHANNEL.postMessage({type:'KICK',user:username});releaseSessionByAdmin(username);switchAdminTab('list');showToast(`Sesión de "${username}" cerrada`,'ok');}
+function kickUser(username){
+  // Release session locally
+  releaseSessionByAdmin(username);
+  // Signal via Firebase so other devices see it
+  if(_fbDb){
+    _fbDb.ref('tp_sessions/'+username).remove();
+    _fbDb.ref('tp_kick').set({user:username,ts:Date.now(),by:TAB_ID});
+  }
+  SESSION_CHANNEL.postMessage({type:'KICK',user:username});
+  switchAdminTab('list');
+  showToast('Sesión de "'+username+'" cerrada','ok');
+}
 function releaseSessionByAdmin(username){const s=getSessions();delete s[username];saveSessions(s);}
 SESSION_CHANNEL.addEventListener('message',e=>{if(e.data.type==='KICK'&&currentUser&&e.data.user===currentUser.user)forceLogout('El administrador cerró tu sesión.');});
 function deleteUser(i){const users=getUsers();if(users[i].user==='admin')return;if(!confirm(`¿Eliminar al usuario "${users[i].user}"?`))return;releaseSessionByAdmin(users[i].user);users.splice(i,1);saveUsers(users);switchAdminTab('list');showToast('Usuario eliminado','ok');}
