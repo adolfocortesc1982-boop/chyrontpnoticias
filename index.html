@@ -187,6 +187,7 @@ nav{background:var(--s1);border-right:1px solid var(--border);padding:18px 12px;
       <span>⬇⬇</span><span>Descargar todo</span>
       <span class="hdr-count" id="hdrCountAll">0</span>
     </button>
+    <button class="hdr-btn" onclick="nuevoDia()" style="color:#E63950;border-color:rgba(230,57,80,.35);" title="Empezar el día desde cero">🗑 Nuevo día</button>
     <div style="display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;">
       <div style="font-size:11px;font-weight:600;color:var(--text2);" id="hdrUserTag">—</div>
       <button onclick="logout()" title="Cerrar sesión" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">⏻</button>
@@ -1264,6 +1265,26 @@ async function syncPush(){
 async function syncPull(){
   // Handled by Firebase real-time listener (firebaseStartListener)
   // This function kept for compatibility
+}
+
+function nuevoDia(){
+  if(!confirm('⚠ ¿Empezar el día desde cero?\nEsto eliminará TODOS los archivos generados y el reporte de emisión en TODOS los equipos.')) return;
+  // Clear all fileStore
+  Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
+  // Clear bqr_notas
+  Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
+  bqr_nota=1;
+  // Clear reporte
+  localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
+  // Push to Firebase
+  if(_fbDb){
+    var ts=Date.now();
+    _lastSyncHash=ts+'';
+    _fbDb.ref(SYNC_KEY).set({fileStore,PERSONAL_DB,bqr_notas,ts,pushedBy:TAB_ID});
+    _fbDb.ref('tp_reporte').set([]);
+  }
+  render();
+  showToast('✓ Nuevo día iniciado — todo limpio','ok');
 }
 
 async function syncAfterChange(){await syncPush();_lastSyncHash=quickHash(JSON.stringify({fileStore,PERSONAL_DB,bqr_notas,ts:0}));}
