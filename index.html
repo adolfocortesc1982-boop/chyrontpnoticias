@@ -1216,7 +1216,19 @@ function firebaseStartListener(){
       _lastSyncHash=hash;
       // Don't overwrite if this tab just pushed
       if(parsed.ts && (Date.now()-parsed.ts)<500) return;
-      if(parsed.fileStore) Object.assign(fileStore,parsed.fileStore);
+      if(parsed.fileStore){
+        // Register new files in report
+        Object.keys(parsed.fileStore).forEach(function(sid){
+          var inc=parsed.fileStore[sid]||[];
+          var exist=new Set((fileStore[sid]||[]).map(function(f){return f.name;}));
+          inc.forEach(function(f){
+            if(!exist.has(f.name)){
+              reporteRegistrar({tipo:sid,nota:sid,archivo:f.name,nombre:f.desc||f.name,cargo:'',tematico:'',ubicacion:'',qr:'',usuario:'sync'});
+            }
+          });
+        });
+        Object.assign(fileStore,parsed.fileStore);
+      }
       if(parsed.PERSONAL_DB) Object.assign(PERSONAL_DB,parsed.PERSONAL_DB);
       if(parsed.bqr_notas) Object.assign(bqr_notas,parsed.bqr_notas);
       renderFilesList();updateHeaderCounts();updateReporteBadge();
