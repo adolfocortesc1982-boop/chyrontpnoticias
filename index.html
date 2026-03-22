@@ -329,6 +329,17 @@ function firebaseInitReporte(){
     localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
     updateReporteBadge();
   });
+  // Listen for session changes from other PCs
+  _fbDb.ref('tp_sessions').on('value',function(snap){
+    var data=snap.val()||{};
+    var localSessions=getSessions();
+    // Merge Firebase sessions into local
+    Object.keys(data).forEach(function(u){
+      if(data[u]!==TAB_ID) localSessions[u]=data[u];
+    });
+    saveSessions(localSessions);
+    // Don't force logout — session restriction handled at login
+  });
   // Listen for nuevo dia signal
   _fbDb.ref('tp_nuevo_dia').on('value',function(snap){
     var data=snap.val();
@@ -342,9 +353,23 @@ function firebaseInitReporte(){
 }
 function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
 function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
-function claimSession(u){const s=getSessions();s[u]=TAB_ID;saveSessions(s);SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});}
-function releaseSession(u){const s=getSessions();if(s[u]===TAB_ID){delete s[u];saveSessions(s);SESSION_CHANNEL.postMessage({type:'RELEASED',user:u,tabId:TAB_ID});}}
-function isSessionTaken(u){const s=getSessions();const e=s[u];return e&&e!==TAB_ID;}
+function claimSession(u){
+  const s=getSessions();s[u]=TAB_ID;saveSessions(s);
+  SESSION_CHANNEL.postMessage({type:'CLAIMED',user:u,tabId:TAB_ID});
+  if(_fbDb) _fbDb.ref('tp_sessions/'+u).set(TAB_ID);
+}
+function releaseSession(u){
+  const s=getSessions();
+  if(s[u]===TAB_ID){
+    delete s[u];saveSessions(s);
+    SESSION_CHANNEL.postMessage({type:'RELEASED',user:u,tabId:TAB_ID});
+    if(_fbDb) _fbDb.ref('tp_sessions/'+u).remove();
+  }
+}
+function isSessionTaken(u){
+  const s=getSessions();const e=s[u];
+  return e&&e!==TAB_ID;
+}
 SESSION_CHANNEL.onmessage=(e)=>{if(!currentUser)return;if(e.data.type==='CLAIMED'&&e.data.user===currentUser.user&&e.data.tabId!==TAB_ID)forceLogout('Tu sesión fue iniciada en otro equipo.');if(e.data.type==='PING'&&e.data.user===currentUser?.user)SESSION_CHANNEL.postMessage({type:'PONG',user:currentUser.user,tabId:TAB_ID});};
 let heartbeatInterval=null;
 function startHeartbeat(u){stopHeartbeat();heartbeatInterval=setInterval(()=>{if(!currentUser)return stopHeartbeat();claimSession(u);},20000);}
@@ -361,12 +386,21 @@ function doLogin(){
   const found=users.find(x=>x.user===u&&x.pass===p);
   if(!found){errEl.textContent='Usuario o contraseña incorrectos';errEl.style.display='block';document.getElementById('loginPass').value='';return;}
   if(isSessionTaken(u)){
-    SESSION_CHANNEL.postMessage({type:'PING',user:u});
-    errEl.textContent='Verificando sesión en otros equipos…';errEl.style.display='block';errEl.style.color='var(--accent2)';
-    let responded=false;
-    const ph=(e)=>{if(e.data.type==='PONG'&&e.data.user===u){responded=true;SESSION_CHANNEL.removeEventListener('message',ph);errEl.textContent=`⚠ "${u}" ya tiene sesión activa en otro equipo.`;errEl.style.color='var(--red)';errEl.style.display='block';}};
-    SESSION_CHANNEL.addEventListener('message',ph);
-    setTimeout(()=>{SESSION_CHANNEL.removeEventListener('message',ph);if(!responded){releaseSession(u);completeLogin(found);}},800);
+    if(_fbDb){
+      _fbDb.ref('tp_sessions/'+u).once('value',function(snap){
+        var fbSession=snap.val();
+        if(fbSession && fbSession!==TAB_ID){
+          errEl.textContent='⚠ El usuario "'+u+'" ya tiene sesión activa en otro equipo. Cierra esa sesión primero.';
+          errEl.style.color='var(--red)';errEl.style.display='block';
+          document.getElementById('loginPass').value='';
+        } else {
+          completeLogin(found);
+        }
+      });
+    } else {
+      errEl.textContent='⚠ "'+u+'" ya tiene sesión activa. Ciérrala primero.';
+      errEl.style.color='var(--red)';errEl.style.display='block';
+    }
     return;
   }
   completeLogin(found);
@@ -1290,11 +1324,10 @@ function ejecutarNuevoDia(){
   Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
   bqr_nota=1;
   localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
-  // Also clear Firebase sync data
   if(_fbDb){
     var ts=Date.now();
     _lastSyncHash=ts+'';
-    _fbDb.ref(SYNC_KEY).set({fileStore:{},PERSONAL_DB:PERSONAL_DB,bqr_notas:{},ts:ts,pushedBy:TAB_ID});
+    _fbDb.ref(SYNC_KEY).set({fileStore:{bannerqr:[],personal:[],titulares:[],macros:[]},PERSONAL_DB:PERSONAL_DB,bqr_notas:{},ts:ts,pushedBy:TAB_ID});
     _fbDb.ref('tp_reporte').set([]);
   }
   render();
