@@ -329,6 +329,16 @@ function firebaseInitReporte(){
     localStorage.setItem(REPORTE_KEY,JSON.stringify(data));
     updateReporteBadge();
   });
+  // Listen for nuevo dia signal
+  _fbDb.ref('tp_nuevo_dia').on('value',function(snap){
+    var data=snap.val();
+    if(!data||!data.ts) return;
+    // Only react if signal is from another tab
+    if(data.by===TAB_ID) return;
+    // Only react to recent signals (last 10 seconds)
+    if(Date.now()-data.ts>10000) return;
+    ejecutarNuevoDia();
+  });
 }
 function getSessions(){try{return JSON.parse(localStorage.getItem('tp_sessions')||'{}');}catch(e){return{};}}
 function saveSessions(s){localStorage.setItem('tp_sessions',JSON.stringify(s));}
@@ -1268,19 +1278,23 @@ async function syncPull(){
 }
 
 function nuevoDia(){
-  if(!confirm('⚠ ¿Empezar el día desde cero?\nEsto eliminará TODOS los archivos generados y el reporte de emisión en TODOS los equipos.')) return;
-  // Clear all fileStore
+  if(!confirm('⚠ ¿Empezar el día desde cero?\nEsto eliminará TODOS los archivos generados y el reporte en TODOS los equipos.')) return;
+  ejecutarNuevoDia();
+  // Signal all other clients via Firebase
+  if(_fbDb){
+    _fbDb.ref('tp_nuevo_dia').set({ts:Date.now(),by:TAB_ID});
+  }
+}
+function ejecutarNuevoDia(){
   Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
-  // Clear bqr_notas
   Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
   bqr_nota=1;
-  // Clear reporte
   localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
-  // Push to Firebase
+  // Also clear Firebase sync data
   if(_fbDb){
     var ts=Date.now();
     _lastSyncHash=ts+'';
-    _fbDb.ref(SYNC_KEY).set({fileStore,PERSONAL_DB,bqr_notas,ts,pushedBy:TAB_ID});
+    _fbDb.ref(SYNC_KEY).set({fileStore:{},PERSONAL_DB:PERSONAL_DB,bqr_notas:{},ts:ts,pushedBy:TAB_ID});
     _fbDb.ref('tp_reporte').set([]);
   }
   render();
