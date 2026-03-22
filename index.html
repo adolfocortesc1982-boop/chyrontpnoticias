@@ -350,8 +350,7 @@ function firebaseInitReporte(){
     if(data.ts < _ndConnectTime) return; // ignore signals before we connected
     console.log('Executing nuevo dia from remote signal');
     // Clear locally without pushing to Firebase again
-    Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
-  fileStoreInit();
+    fileStore.bannerqr=[];fileStore.personal=[];fileStore.titulares=[];fileStore.macros=[];
     Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
     bqr_nota=1;
     localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
