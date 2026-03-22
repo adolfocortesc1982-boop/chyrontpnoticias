@@ -340,13 +340,14 @@ function firebaseInitReporte(){
     saveSessions(localSessions);
     // Don't force logout — session restriction handled at login
   });
-  // Listen for nuevo dia signal
+  // Listen for nuevo dia signal — only react to signals after we connected
+  var _ndConnectTime=Date.now();
   _fbDb.ref('tp_nuevo_dia').on('value',function(snap){
     var data=snap.val();
     console.log('tp_nuevo_dia received:', data);
     if(!data||!data.ts) return;
     if(data.by===TAB_ID) return;
-    if(Date.now()-data.ts>30000) return; // 30 seconds window
+    if(data.ts < _ndConnectTime) return; // ignore signals before we connected
     console.log('Executing nuevo dia from remote signal');
     // Clear locally without pushing to Firebase again
     Object.keys(fileStore).forEach(function(k){ fileStore[k]=[]; });
