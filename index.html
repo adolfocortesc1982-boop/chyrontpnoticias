@@ -328,12 +328,10 @@ function firebaseInitReporte(){
     if(!data||!Array.isArray(data)) return;
     // Skip if we pushed this ourselves within last 3 seconds
     if(Date.now()-_reportePushedAt<3000) return;
-    // Deduplicate: keep only first occurrence of each archivo+tipo combo
+    // Deduplicate: use rid if available, otherwise use archivo+tipo
     var seen={};
     var deduped=data.filter(function(r){
-      var key=r.archivo+'|'+(r.tipo||'')+'|'+(r.nota||'');
-      // For bannerqr, use only archivo as key (nota can be number or string)
-      if(r.tipo==='bannerqr') key=r.archivo+'|bannerqr';
+      var key=r.rid||(r.archivo+'|'+(r.tipo||''));
       if(seen[key]) return false;
       seen[key]=true;
       return true;
@@ -780,17 +778,17 @@ function renderBannerQR(){
         <div class="form-group">
           <div class="f-label">Nombre</div>
           <input class="f-input" id="bqr_nombre" placeholder="Nombre del invitado / periodista"
-            value="${draft.nombre}" oninput="bqrGetNota(bqr_nota).draft.nombre=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            value="${draft.nombre}" oninput="bqrGetNota(bqr_nota).draft.nombre=this.value.toUpperCase();this.value=this.value.toUpperCase();bqrMutualLock()">
         </div>
         <div class="form-group">
           <div class="f-label">Cargo</div>
           <input class="f-input" id="bqr_cargo" placeholder="Cargo o título"
-            value="${draft.cargo}" oninput="bqrGetNota(bqr_nota).draft.cargo=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            value="${draft.cargo}" oninput="bqrGetNota(bqr_nota).draft.cargo=this.value.toUpperCase();this.value=this.value.toUpperCase();bqrMutualLock()">
         </div>
         <div class="form-group full">
           <div class="f-label">Temático</div>
           <input class="f-input" id="bqr_tematico" placeholder="Temático de la nota"
-            value="${draft.tematico}" oninput="bqrGetNota(bqr_nota).draft.tematico=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+            value="${draft.tematico}" oninput="bqrGetNota(bqr_nota).draft.tematico=this.value.toUpperCase();this.value=this.value.toUpperCase();bqrMutualLock()">
         </div>
         <div class="form-group">
           <div class="f-label">Ubicación</div>
@@ -821,6 +819,29 @@ function renderBannerQR(){
 }
 
 function bqrCambiarNota(n){bqr_nota=n;render();}
+function bqrMutualLock(){
+  var nombre=document.getElementById('bqr_nombre');
+  var cargo=document.getElementById('bqr_cargo');
+  var tematico=document.getElementById('bqr_tematico');
+  if(!nombre||!cargo||!tematico) return;
+  var hasNombreCargo=(nombre.value.trim()!==''||cargo.value.trim()!=='');
+  var hasTematico=tematico.value.trim()!=='';
+  // Bloquear temático si hay nombre o cargo
+  tematico.disabled=hasNombreCargo;
+  tematico.style.opacity=hasNombreCargo?'0.4':'1';
+  tematico.style.cursor=hasNombreCargo?'not-allowed':'';
+  tematico.placeholder=hasNombreCargo?'— Bloqueado (hay Nombre/Cargo)':'Temático de la nota';
+  // Bloquear nombre y cargo si hay temático
+  nombre.disabled=hasTematico;
+  nombre.style.opacity=hasTematico?'0.4':'1';
+  nombre.style.cursor=hasTematico?'not-allowed':'';
+  nombre.placeholder=hasTematico?'— Bloqueado (hay Temático)':'Nombre del invitado / periodista';
+  cargo.disabled=hasTematico;
+  cargo.style.opacity=hasTematico?'0.4':'1';
+  cargo.style.cursor=hasTematico?'not-allowed':'';
+  cargo.placeholder=hasTematico?'— Bloqueado (hay Temático)':'Cargo o título';
+}
+
 function bqrLimpiarCampos(){if(bqr_notas[bqr_nota])bqr_notas[bqr_nota].draft={nombre:'',cargo:'',tematico:'',ubicacion:bqr_notas[bqr_nota].draft?.ubicacion||'',qr:bqr_notas[bqr_nota].draft?.qr||''};render();}
 function bqrClear(){bqr_notas[bqr_nota]={draft:{nombre:'',cargo:'',tematico:'',ubicacion:'',qr:''}};fileStore.bannerqr=fileStore.bannerqr.filter(f=>{const n=parseInt(f.name);return!(n>=bqr_nota*100&&n<(bqr_nota*100)+100);});render();syncAfterChange();}
 
@@ -855,6 +876,8 @@ function generateBannerQR(){
     usuario:currentUser?.user||'—'
   });
   render();showToast(`✓ ${num}.pbm generado`,'ok');syncAfterChange();
+  // Reset lock after clearing
+  setTimeout(bqrMutualLock,0);
 }
 
 // ════════════════════════════════════════════════════════
@@ -1439,14 +1462,18 @@ function reporteSave(data){
 
 function reporteRegistrar(entry){
   const data=reporteLoad();
-  // Avoid duplicates — check if this file is already registered
-  if(data.some(function(r){return r.archivo===entry.archivo&&r.tipo===entry.tipo;})) return;
-  // Also check if same archivo exists with sync tipo mapping
-  var tipoAlt={'bannerqr':'bannerqr','titulares':'titular','titular':'titulares','macros':'macro','macro':'macros','personal':'personal'};
-  if(data.some(function(r){return r.archivo===entry.archivo&&(r.tipo===tipoAlt[entry.tipo]||entry.tipo===tipoAlt[r.tipo]);})) return;
+  // Avoid duplicates — check archivo+tipo (handles both local and sync)
+  var tipoNorm={'titular':'titulares','macro':'macros','titulares':'titulares','macros':'macros','bannerqr':'bannerqr','personal':'personal'};
+  var entryTipo=tipoNorm[entry.tipo]||entry.tipo;
+  if(data.some(function(r){
+    var rTipo=tipoNorm[r.tipo]||r.tipo;
+    return r.archivo===entry.archivo&&rTipo===entryTipo;
+  })) return;
   const now=new Date();
+  const rid=TAB_ID+'_'+now.getTime(); // unique ID per entry
   data.push({
     ...entry,
+    rid:rid,
     fecha:now.toLocaleDateString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit'}),
     hora:now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
     ts:now.getTime()
