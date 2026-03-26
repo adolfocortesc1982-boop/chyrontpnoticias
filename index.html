@@ -279,6 +279,7 @@ nav{background:var(--s1);border-right:1px solid var(--border);padding:18px 12px;
       <button class="admin-tab active" id="adminTab-list"   onclick="switchAdminTab('list')">👥 Usuarios</button>
       <button class="admin-tab"        id="adminTab-new"    onclick="switchAdminTab('new')">＋ Crear usuario</button>
       <button class="admin-tab"        id="adminTab-mypass" onclick="switchAdminTab('mypass')">🔑 Mi contraseña</button>
+      <button class="admin-tab"        id="adminTab-cfg"    onclick="switchAdminTab('cfg')">⚙️ Configuración</button>
     </div>
     <div id="adminContent" style="overflow-y:auto;flex:1;padding:22px 26px;"></div>
   </div>
@@ -492,7 +493,7 @@ function openAdmin(){
   }
 }
 function closeAdmin(){document.getElementById('adminOverlay').style.display='none';}
-function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();}
+function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass','cfg'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();if(tab==='cfg')renderAdminCfg();}
 
 function renderAdminList(){
   const users=getUsers();const sessions=getSessions();
@@ -572,6 +573,223 @@ function kickUser(username){
 function releaseSessionByAdmin(username){const s=getSessions();delete s[username];saveSessions(s);}
 SESSION_CHANNEL.addEventListener('message',e=>{if(e.data.type==='KICK'&&currentUser&&e.data.user===currentUser.user)forceLogout('El administrador cerró tu sesión.');});
 function deleteUser(i){const users=getUsers();if(users[i].user==='admin')return;if(!confirm(`¿Eliminar al usuario "${users[i].user}"?`))return;releaseSessionByAdmin(users[i].user);users.splice(i,1);saveUsers(users);switchAdminTab('list');showToast('Usuario eliminado','ok');}
+
+// ════════════════════════════════════════════════════════
+// CONFIGURACIÓN DE ESCENAS (.pbx)
+// ════════════════════════════════════════════════════════
+const SCENE_CFG_KEY = 'tp_scene_cfg';
+
+const SCENE_CFG_DEFAULTS = {
+  bannerqr: {
+    label:'Banner QR', icon:'🎬', pbxFile:'BANNER2QR.pbx',
+    path:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\BANNER2QR.pbx',
+    fields:[
+      {key:'nombre',  label:'Nombre',    id:'Text Nombre Text'},
+      {key:'cargo',   label:'Cargo',     id:'Text Cargo Text'},
+      {key:'tematico',label:'Temático',  id:'Text Tematico Text'},
+      {key:'ubicacion',label:'Ubicación',id:'Text 1 Ubicacion Text'},
+      {key:'qr',      label:'QR',        id:'Image QR File'},
+    ]
+  },
+  personal: {
+    label:'Personal', icon:'👤', pbxFile:'PERSONAL.pbx',
+    path:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',
+    fields:[
+      {key:'nombre',label:'Nombre',id:'Text 1 Nombre Text'},
+      {key:'cargo', label:'Cargo', id:'Text 2 Cargo Text'},
+    ]
+  },
+  titulares: {
+    label:'Titulares', icon:'🔴', pbxFile:'LO MASS5.pbx',
+    path:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\LO MASS5.pbx',
+    fields:[
+      {key:'titular',label:'Titular',    id:'TITULAR Text'},
+      {key:'fondo',  label:'Texto Fondo',id:'Texto de Fondo Text'},
+    ]
+  },
+  macros: {
+    label:'Macros', icon:'📊', pbxFile:'MACROS2.pbx',
+    path:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\MACROS2.pbx',
+    fields:[
+      {key:'l1',label:'Línea 1',id:'TextLine1 Text'},
+      {key:'l2',label:'Línea 2',id:'TextLine2 Text'},
+    ]
+  }
+};
+
+function getSceneCfg(){
+  try{const raw=localStorage.getItem(SCENE_CFG_KEY);if(raw)return JSON.parse(raw);}catch(e){}
+  return JSON.parse(JSON.stringify(SCENE_CFG_DEFAULTS));
+}
+function saveSceneCfg(cfg){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(cfg));if(_fbDb)_fbDb.ref('tp_scene_cfg').set(cfg);}
+
+// Leer campos desde XML de archivo .pbx (sección <Replaceables>)
+function parsePbxReplaceables(xmlText){
+  const fields=[];
+  // Match <Replaceable Id="..."> blocks
+  const re=/<Replaceable[^>]*\bId="([^"]+)"/gi;
+  let m;
+  while((m=re.exec(xmlText))!==null){
+    const rawId=m[1];
+    // Derive a short key from the id
+    const key=rawId.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+    fields.push({key,label:rawId,id:rawId});
+  }
+  return fields;
+}
+
+// Cargar .pbx y precargar campos en el formulario de configuración
+async function loadPbxFile(moduleKey){
+  if(!('showOpenFilePicker' in window)){showToast('⚠ Usa Chrome o Edge','warn');return;}
+  try{
+    const [fileHandle]=await window.showOpenFilePicker({
+      types:[{description:'Archivos de Escena',accept:{'application/xml':['.pbx'],'text/xml':['.pbx']}}],
+      multiple:false
+    });
+    const file=await fileHandle.getFile();
+    const text=await file.text();
+    const fileName=file.name;
+    const fields=parsePbxReplaceables(text);
+    if(!fields.length){showToast('⚠ No se encontraron campos <Replaceables> en el archivo','warn');return;}
+    // Derive path from filename (user will need to edit the full path)
+    const detectedPath=fileName;
+    // Update UI
+    const pathInput=document.getElementById(`cfg_path_${moduleKey}`);
+    if(pathInput){pathInput.value=detectedPath;}
+    // Repopulate fields table
+    const cfg=getSceneCfg();
+    cfg[moduleKey].pbxFile=fileName;
+    // Keep existing path prefix if available, otherwise use filename
+    if(pathInput&&pathInput.value===fileName){
+      // suggest user updates the full path
+    }
+    cfg[moduleKey].fields=fields;
+    // Re-render fields section
+    renderCfgFields(moduleKey,fields);
+    showToast(`✓ ${fields.length} campo(s) detectados desde ${fileName}`,'ok');
+  }catch(e){if(e.name!=='AbortError')showToast('⚠ No se pudo leer el archivo','warn');}
+}
+
+function renderCfgFields(moduleKey, fields){
+  const container=document.getElementById(`cfg_fields_${moduleKey}`);
+  if(!container)return;
+  container.innerHTML=fields.map((f,fi)=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px;">
+      <input class="cfg-input" style="margin:0" placeholder="Clave interna" value="${f.key}" oninput="cfgFieldChange('${moduleKey}',${fi},'key',this.value)">
+      <input class="cfg-input" style="margin:0" placeholder="Etiqueta visible" value="${f.label}" oninput="cfgFieldChange('${moduleKey}',${fi},'label',this.value)">
+      <input class="cfg-input" style="margin:0;font-size:10px;" placeholder="ID en Chyron" value="${f.id}" oninput="cfgFieldChange('${moduleKey}',${fi},'id',this.value)">
+      <button class="btn-rm" onclick="cfgRemoveField('${moduleKey}',${fi})" title="Eliminar campo">✕</button>
+    </div>`).join('');
+}
+
+// Live-edit helpers — operate on a temp in-memory object per render cycle
+const _cfgDraft={};
+function cfgEnsureDraft(moduleKey){
+  if(!_cfgDraft[moduleKey]){const cfg=getSceneCfg();_cfgDraft[moduleKey]=JSON.parse(JSON.stringify(cfg[moduleKey]));}
+}
+function cfgFieldChange(moduleKey,fi,prop,val){cfgEnsureDraft(moduleKey);_cfgDraft[moduleKey].fields[fi][prop]=val;}
+function cfgRemoveField(moduleKey,fi){
+  cfgEnsureDraft(moduleKey);
+  _cfgDraft[moduleKey].fields.splice(fi,1);
+  renderCfgFields(moduleKey,_cfgDraft[moduleKey].fields);
+}
+function cfgAddField(moduleKey){
+  cfgEnsureDraft(moduleKey);
+  _cfgDraft[moduleKey].fields.push({key:'campo_nuevo',label:'Campo nuevo',id:'ID Chyron'});
+  renderCfgFields(moduleKey,_cfgDraft[moduleKey].fields);
+}
+function cfgSaveModule(moduleKey){
+  cfgEnsureDraft(moduleKey);
+  const cfg=getSceneCfg();
+  const pathVal=document.getElementById(`cfg_path_${moduleKey}`)?.value||'';
+  _cfgDraft[moduleKey].path=pathVal;
+  // Sync fields from DOM (in case user typed without triggering oninput)
+  cfg[moduleKey]=JSON.parse(JSON.stringify(_cfgDraft[moduleKey]));
+  saveSceneCfg(cfg);
+  delete _cfgDraft[moduleKey];
+  showToast(`✓ Configuración de ${cfg[moduleKey].label} guardada`,'ok');
+}
+function cfgResetModule(moduleKey){
+  if(!confirm(`¿Restablecer la configuración de "${moduleKey}" a los valores por defecto?`))return;
+  const cfg=getSceneCfg();
+  cfg[moduleKey]=JSON.parse(JSON.stringify(SCENE_CFG_DEFAULTS[moduleKey]));
+  delete _cfgDraft[moduleKey];
+  saveSceneCfg(cfg);
+  renderAdminCfg();
+  showToast('✓ Configuración restablecida','ok');
+}
+
+function renderAdminCfg(){
+  const c=document.getElementById('adminContent');
+  if(!c)return;
+  const cfg=getSceneCfg();
+  const modules=Object.keys(cfg);
+  c.innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:18px;">
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(0,157,181,.06);border:1px solid rgba(0,157,181,.18);border-radius:8px;">
+        <strong style="color:var(--accent2);">📂 Cómo usar:</strong> Haz clic en <em>📂 Cargar .pbx</em> para seleccionar el archivo de escena directamente.
+        El sistema leerá los campos <code>&lt;Replaceables&gt;</code> automáticamente y los precargará en la tabla. 
+        Ajusta la <em>Ruta completa</em> si es necesario y pulsa <em>Guardar</em>.
+      </div>
+      ${modules.map(key=>{
+        const s=cfg[key];
+        return`<div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s3);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:18px;">${s.icon}</span>
+              <div>
+                <div style="font-weight:700;font-size:13px;color:var(--text);">${s.label}</div>
+                <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${s.pbxFile}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:7px;">
+              <button class="btn-sm" onclick="loadPbxFile('${key}')" title="Cargar archivo .pbx y detectar campos automáticamente">📂 Cargar .pbx</button>
+              <button class="btn-sm" onclick="cfgResetModule('${key}')" title="Restablecer valores por defecto" style="color:var(--text3);">↺ Restablecer</button>
+            </div>
+          </div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div class="cfg-label">Ruta completa del archivo .pbx</div>
+              <input class="cfg-input" id="cfg_path_${key}" value="${s.path}" placeholder="Ej: I:\\PROJECTS\\...\\BANNER2QR.pbx" style="margin:0;width:100%;font-size:11px;">
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div class="cfg-label" style="margin:0;">Campos de la escena</div>
+                <button class="btn-add" onclick="cfgAddField('${key}')" style="font-size:11px;padding:4px 11px;">＋ Agregar campo</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:6px;padding:0 2px;">
+                <div class="cfg-label" style="margin:0;">Clave interna</div>
+                <div class="cfg-label" style="margin:0;">Etiqueta visible</div>
+                <div class="cfg-label" style="margin:0;">ID en Chyron</div>
+                <div></div>
+              </div>
+              <div id="cfg_fields_${key}">
+                ${s.fields.map((f,fi)=>`
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px;">
+                    <input class="cfg-input" style="margin:0" value="${f.key}" oninput="cfgFieldChange('${key}',${fi},'key',this.value)">
+                    <input class="cfg-input" style="margin:0" value="${f.label}" oninput="cfgFieldChange('${key}',${fi},'label',this.value)">
+                    <input class="cfg-input" style="margin:0;font-size:10px;" value="${f.id}" oninput="cfgFieldChange('${key}',${fi},'id',this.value)">
+                    <button class="btn-rm" onclick="cfgRemoveField('${key}',${fi})" title="Eliminar campo">✕</button>
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="btn-gen" style="padding:9px 22px;font-size:12px;" onclick="cfgSaveModule('${key}')">✓ Guardar</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// Cargar configuración de Firebase al iniciar (si existe)
+function loadSceneCfgFromFirebase(){
+  if(!_fbDb)return;
+  _fbDb.ref('tp_scene_cfg').once('value',function(snap){
+    const val=snap.val();
+    if(val){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(val));}
+  });
+}
 
 // ════════════════════════════════════════════════════════
 // PERSONAL_DB — persistente en localStorage
