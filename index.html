@@ -223,6 +223,7 @@ nav{background:var(--s1);border-right:1px solid var(--border);padding:18px 12px;
     <button class="nav-btn" onclick="setPage('reporte')" id="nav-reporte">
       <span>📋</span><span>Reporte de Emisión</span><span class="nav-badge" id="nav-reporte-badge">0</span>
     </button>
+    <div id="nav-custom-section"></div>
     <div class="nav-divider"></div>
     <div class="nav-section-title">Configuración</div>
     <div style="padding:0 4px;">
@@ -380,7 +381,7 @@ function firebaseInitReporte(){
     if(data.ts < _ndConnectTime) return; // ignore signals before we connected
     console.log('Executing nuevo dia from remote signal');
     // Clear locally without pushing to Firebase again
-    fileStore.bannerqr=[];fileStore.personal=[];fileStore.titulares=[];fileStore.macros=[];
+    fileStore.bannerqr=[];fileStore.personal=[];fileStore.titulares=[];fileStore.macros=[];getCustomScenes().forEach(s=>{fileStore[s.key]=[];});
     Object.keys(bqr_notas).forEach(function(k){ delete bqr_notas[k]; });
     bqr_nota=1;
     localStorage.setItem(REPORTE_KEY,JSON.stringify([]));
@@ -455,7 +456,8 @@ function completeLogin(found){
   document.getElementById('loginError').style.color='var(--red)';
   const ab=document.getElementById('hdrBtnAdmin');if(ab)ab.style.display=found.role==='admin'?'':'none';
   const ut=document.getElementById('hdrUserTag');if(ut)ut.textContent=found.user.toUpperCase();
-  render();if(!_fbDb)firebaseInit();else{firebaseStartListener();firebaseInitUsers();firebaseInitReporte();}
+  initCustomFileStore();renderCustomNav();
+  render();if(!_fbDb)firebaseInit();else{firebaseStartListener();firebaseInitUsers();firebaseInitReporte();loadSceneCfgFromFirebase();}
 }
 
 function logout(){
@@ -719,32 +721,125 @@ function cfgResetModule(moduleKey){
   showToast('✓ Configuración restablecida','ok');
 }
 
+// ── NUEVA ESCENA PERSONALIZADA ──
+async function cfgAddNewScene(){
+  // Prompt for name
+  const label=prompt('Nombre de la nueva escena (ej: ESPECIALES):');
+  if(!label||!label.trim())return;
+  const icon=prompt('Ícono emoji para el menú (ej: ⭐):')||'🎬';
+  const prefix=prompt('Prefijo para los archivos .pbm (ej: ESPECIALES):',label.trim().toUpperCase().replace(/[^A-Z0-9]/g,'_'))||label.trim().toUpperCase();
+  const key='custom_'+Date.now();
+  // Ask to load .pbx right away
+  let fields=[];let path='';let pbxFile='';
+  if(confirm('¿Cargar archivo .pbx ahora para detectar campos automáticamente?')){
+    const result=await loadPbxFileForNew();
+    if(result){fields=result.fields;path=result.path;pbxFile=result.fileName;}
+  }
+  // Save to custom scenes list
+  const scenes=getCustomScenes();
+  scenes.push({key,label:label.trim(),icon,prefix,path,pbxFile,fields});
+  saveCustomScenes(scenes);
+  // Also save to sceneCfg so editability works
+  const cfg=getSceneCfg();
+  cfg[key]={label:label.trim(),icon,pbxFile,path,fields};
+  saveSceneCfg(cfg);
+  // Init fileStore
+  if(!fileStore[key])fileStore[key]=[];
+  // Update nav
+  renderCustomNav();
+  // Re-render cfg tab
+  renderAdminCfg();
+  showToast('✓ Escena "'+label.trim()+'" creada','ok');
+}
+
+async function loadPbxFileForNew(){
+  if(!('showOpenFilePicker' in window)){showToast('⚠ Usa Chrome o Edge','warn');return null;}
+  try{
+    const [fileHandle]=await window.showOpenFilePicker({
+      types:[{description:'Archivos de Escena',accept:{'application/xml':['.pbx'],'text/xml':['.pbx']}}],
+      multiple:false
+    });
+    const file=await fileHandle.getFile();
+    const text=await file.text();
+    const fields=parsePbxReplaceables(text);
+    if(!fields.length){showToast('⚠ No se encontraron campos <Replaceables>','warn');return null;}
+    return{fields,path:file.name,fileName:file.name};
+  }catch(e){if(e.name!=='AbortError')showToast('⚠ No se pudo leer el archivo','warn');return null;}
+}
+
+function cfgDeleteCustomScene(key){
+  const scenes=getCustomScenes();
+  const s=scenes.find(x=>x.key===key);
+  if(!s)return;
+  if(!confirm('¿Eliminar la escena "'+s.label+'" y todos sus archivos?'))return;
+  const idx=scenes.findIndex(x=>x.key===key);
+  scenes.splice(idx,1);
+  saveCustomScenes(scenes);
+  const cfg=getSceneCfg();
+  delete cfg[key];
+  saveSceneCfg(cfg);
+  delete fileStore[key];
+  if(currentPage===key)setPage('bannerqr');
+  renderCustomNav();
+  renderAdminCfg();
+  showToast('Escena eliminada','ok');
+}
+
+function cfgSaveCustomScene(key){
+  const scenes=getCustomScenes();
+  const sIdx=scenes.findIndex(x=>x.key===key);
+  if(sIdx<0)return;
+  cfgEnsureDraft(key);
+  const pathVal=document.getElementById('cfg_path_'+key)?.value||'';
+  _cfgDraft[key].path=pathVal;
+  const cfg=getSceneCfg();
+  cfg[key]=JSON.parse(JSON.stringify(_cfgDraft[key]));
+  // Sync back to custom scenes list
+  scenes[sIdx].path=pathVal;
+  scenes[sIdx].fields=cfg[key].fields;
+  scenes[sIdx].label=cfg[key].label||scenes[sIdx].label;
+  saveSceneCfg(cfg);
+  saveCustomScenes(scenes);
+  delete _cfgDraft[key];
+  renderCustomNav();
+  showToast('✓ Escena "'+scenes[sIdx].label+'" guardada','ok');
+}
+
 function renderAdminCfg(){
   const c=document.getElementById('adminContent');
   if(!c)return;
   const cfg=getSceneCfg();
+  // Merge custom scenes into cfg if not already there
+  getCustomScenes().forEach(s=>{if(!cfg[s.key])cfg[s.key]=s;});
   const modules=Object.keys(cfg);
   c.innerHTML=`
     <div style="display:flex;flex-direction:column;gap:18px;">
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(0,157,181,.06);border:1px solid rgba(0,157,181,.18);border-radius:8px;">
-        <strong style="color:var(--accent2);">📂 Cómo usar:</strong> Haz clic en <em>📂 Cargar .pbx</em> para seleccionar el archivo de escena directamente.
-        El sistema leerá los campos <code>&lt;Replaceables&gt;</code> automáticamente y los precargará en la tabla. 
-        Ajusta la <em>Ruta completa</em> si es necesario y pulsa <em>Guardar</em>.
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(0,157,181,.06);border:1px solid rgba(0,157,181,.18);border-radius:8px;flex:1;">
+          <strong style="color:var(--accent2);">📂 Cómo usar:</strong> Haz clic en <em>📂 Cargar .pbx</em> en cada módulo para detectar campos automáticamente.
+          Para agregar una escena nueva, usa <em>＋ Nueva escena</em>.
+        </div>
+        <button class="btn-gen" style="padding:9px 18px;font-size:12px;white-space:nowrap;" onclick="cfgAddNewScene()">＋ Nueva escena</button>
       </div>
       ${modules.map(key=>{
         const s=cfg[key];
+        const isCustom=key.startsWith('custom_');
         return`<div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s3);">
             <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:18px;">${s.icon}</span>
+              <span style="font-size:18px;">${s.icon||'🎬'}</span>
               <div>
                 <div style="font-weight:700;font-size:13px;color:var(--text);">${s.label}</div>
-                <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${s.pbxFile}</div>
+                <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${s.pbxFile||key}</div>
               </div>
             </div>
             <div style="display:flex;gap:7px;">
               <button class="btn-sm" onclick="loadPbxFile('${key}')" title="Cargar archivo .pbx y detectar campos automáticamente">📂 Cargar .pbx</button>
-              <button class="btn-sm" onclick="cfgResetModule('${key}')" title="Restablecer valores por defecto" style="color:var(--text3);">↺ Restablecer</button>
+              ${isCustom
+                ?`<button class="btn-sm" onclick="cfgSaveCustomScene('${key}')" style="color:var(--green);border-color:rgba(92,184,92,.3);">✓ Guardar</button>
+                   <button class="btn-sm" onclick="cfgDeleteCustomScene('${key}')" style="color:var(--red);border-color:rgba(230,57,80,.3);" title="Eliminar escena">🗑</button>`
+                :`<button class="btn-sm" onclick="cfgResetModule('${key}')" style="color:var(--text3);">↺ Restablecer</button>`
+              }
             </div>
           </div>
           <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
@@ -773,9 +868,9 @@ function renderAdminCfg(){
                   </div>`).join('')}
               </div>
             </div>
-            <div style="display:flex;justify-content:flex-end;">
+            ${!isCustom?`<div style="display:flex;justify-content:flex-end;">
               <button class="btn-gen" style="padding:9px 22px;font-size:12px;" onclick="cfgSaveModule('${key}')">✓ Guardar</button>
-            </div>
+            </div>`:''}
           </div>
         </div>`;
       }).join('')}
@@ -788,6 +883,14 @@ function loadSceneCfgFromFirebase(){
   _fbDb.ref('tp_scene_cfg').once('value',function(snap){
     const val=snap.val();
     if(val){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(val));}
+  });
+  _fbDb.ref('tp_custom_scenes').once('value',function(snap){
+    const val=snap.val();
+    if(val&&Array.isArray(val)){
+      localStorage.setItem(CUSTOM_SCENES_KEY,JSON.stringify(val));
+      val.forEach(s=>{if(!fileStore[s.key])fileStore[s.key]=[];});
+      renderCustomNav();
+    }
   });
 }
 
@@ -939,14 +1042,126 @@ const QR_DB=[
 // ── ESTADO ──
 let currentPage='bannerqr';
 const fileStore={bannerqr:[],personal:[],titulares:[],macros:[]};
-function store(){return fileStore[currentPage];}
+function store(){return fileStore[currentPage]||[];}
 const bqr_notas={};
 let bqr_nota=1;
 function bqrGetNota(n){if(!bqr_notas[n])bqr_notas[n]={draft:{nombre:'',cargo:'',tematico:'',ubicacion:'',qr:''}};return bqr_notas[n];}
 let pers_id='';
 
+// ── ESCENAS PERSONALIZADAS — nav y fileStore dinámico ──
+const CUSTOM_SCENES_KEY='tp_custom_scenes';
+function getCustomScenes(){try{return JSON.parse(localStorage.getItem(CUSTOM_SCENES_KEY)||'[]');}catch(e){return[];}}
+function saveCustomScenes(arr){localStorage.setItem(CUSTOM_SCENES_KEY,JSON.stringify(arr));if(_fbDb)_fbDb.ref('tp_custom_scenes').set(arr);}
+
+function initCustomFileStore(){
+  getCustomScenes().forEach(s=>{if(!fileStore[s.key])fileStore[s.key]=[];});
+}
+
+function renderCustomNav(){
+  const scenes=getCustomScenes();
+  const nav=document.getElementById('nav-custom-section');
+  if(!nav)return;
+  if(!scenes.length){nav.innerHTML='';return;}
+  nav.innerHTML=`<div class="nav-divider"></div><div class="nav-section-title">Escenas personalizadas</div>`
+    +scenes.map(s=>`<button class="nav-btn" onclick="setPage('${s.key}')" id="nav-${s.key}">
+      <span>${s.icon||'🎬'}</span><span>${s.label}</span><span class="nav-badge" id="nav-badge-${s.key}">${s.prefix||s.key}</span>
+    </button>`).join('');
+  // Mark active
+  scenes.forEach(s=>{
+    const btn=document.getElementById('nav-'+s.key);
+    if(btn)btn.classList.toggle('active',currentPage===s.key);
+  });
+}
+
+// Mapa de estados de draft por escena personalizada
+const customDrafts={};
+function getCustomDraft(key,fields){
+  if(!customDrafts[key]){customDrafts[key]={};fields.forEach(f=>{customDrafts[key][f.key]='';});}
+  return customDrafts[key];
+}
+
+function renderCustomPage(sceneKey){
+  const scenes=getCustomScenes();
+  const s=scenes.find(x=>x.key===sceneKey);
+  if(!s)return`<div class="empty-state"><div class="empty-ico">⚠️</div><p>Escena no encontrada.</p></div>`;
+  const cfg=getSceneCfg();
+  const sceneCfg=cfg[sceneKey]||s;
+  const fields=sceneCfg.fields||s.fields||[];
+  const draft=getCustomDraft(sceneKey,fields);
+  const inputsHTML=fields.map(f=>`
+    <div class="form-group ${fields.length===1?'full':''}">
+      <div class="f-label">${f.label}</div>
+      <input class="f-input" id="cust_${sceneKey}_${f.key}" value="${draft[f.key]||''}"
+        oninput="customDrafts['${sceneKey}']['${f.key}']=this.value.toUpperCase();this.value=this.value.toUpperCase()"
+        placeholder="${f.label}">
+    </div>`).join('');
+  return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">${s.icon||'🎬'} ${s.label.toUpperCase()}</div>
+        <div class="page-meta">${sceneCfg.path||s.pbxFile||s.key+'.pbx'}</div>
+      </div>
+      <div class="scene-badge">${s.pbxFile||s.key+'.pbx'}</div>
+    </div>
+    <div class="form-block">
+      <div class="form-grid ${fields.length===1?'cols1':''}">${inputsHTML}</div>
+    </div>
+    <div class="actions-bar">
+      <button class="btn-gen" onclick="generateCustom('${sceneKey}')">⚡ Generar .pbm</button>
+      <button class="btn-clear" onclick="clearCustom('${sceneKey}')">✕ Limpiar</button>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr"><div class="section-lbl">Archivos Generados</div></div>
+      <div id="filesList"><div class="empty-state"><div class="empty-ico">📄</div><p>Los archivos .pbm aparecerán aquí.</p></div></div>
+    </div>`;
+}
+
+function generateCustom(sceneKey){
+  const scenes=getCustomScenes();
+  const s=scenes.find(x=>x.key===sceneKey);
+  if(!s)return;
+  const cfg=getSceneCfg();
+  const sceneCfg=cfg[sceneKey]||s;
+  const fields=sceneCfg.fields||s.fields||[];
+  const path=sceneCfg.path||s.path||s.pbxFile||'';
+  // Read values from inputs
+  fields.forEach(f=>{
+    const inp=document.getElementById(`cust_${sceneKey}_${f.key}`);
+    if(inp){customDrafts[sceneKey]=customDrafts[sceneKey]||{};customDrafts[sceneKey][f.key]=inp.value.trim().toUpperCase();}
+  });
+  const draft=customDrafts[sceneKey]||{};
+  const firstField=fields[0];
+  if(firstField&&!draft[firstField.key]){showToast(`⚠ Ingresa al menos ${firstField.label}`,'warn');return;}
+  // Numbering
+  if(!fileStore[sceneKey])fileStore[sceneKey]=[];
+  const prefix=s.prefix||sceneKey.toUpperCase();
+  const usedNums=new Set(fileStore[sceneKey].map(f=>{const mx=f.name.match(/(\d+)\.pbm$/);return mx?parseInt(mx[1]):0;}));
+  let num=1;while(usedNums.has(num))num++;
+  const fileName=`${prefix}_${num}.pbm`;
+  const updates=fields.map(f=>({id:f.id,val:draft[f.key]||''}));
+  const desc=draft[firstField?.key]||fileName;
+  const entry={name:fileName,xml:buildXML(path,updates),desc};
+  fileStore[sceneKey].push(entry);
+  // Reset draft
+  fields.forEach(f=>{if(customDrafts[sceneKey])customDrafts[sceneKey][f.key]='';});
+  reporteRegistrar({tipo:sceneKey,nota:sceneKey,archivo:fileName,nombre:desc,cargo:'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'});
+  render();showToast(`✓ ${fileName} generado`,'ok');syncAfterChange();
+}
+
+function clearCustom(sceneKey){
+  if(customDrafts[sceneKey])Object.keys(customDrafts[sceneKey]).forEach(k=>{customDrafts[sceneKey][k]='';});
+  fileStore[sceneKey]=[];render();syncAfterChange();
+}
+
 // ── ROUTING ──
-function setPage(page){currentPage=page;document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav-'+page).classList.add('active');render();}
+function setPage(page){
+  currentPage=page;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('nav-'+page);
+  if(btn)btn.classList.add('active');
+  render();
+}
 
 function render(){
   const c=document.getElementById('mainContent');
@@ -955,6 +1170,11 @@ function render(){
   else if(currentPage==='titulares')c.innerHTML=renderTitulares();
   else if(currentPage==='macros')c.innerHTML=renderMacros();
   else if(currentPage==='reporte')c.innerHTML=renderReporte();
+  else{
+    const customScenes=getCustomScenes();
+    const cs=customScenes.find(s=>s.key===currentPage);
+    if(cs)c.innerHTML=renderCustomPage(currentPage);
+  }
   renderFilesList();updateHeaderCounts();updateReporteBadge();
 }
 
@@ -1402,7 +1622,10 @@ function renderFilesList(){
     const badge=document.querySelector(`#nav-${key} .nav-badge`);if(!badge)return;
     const count=fileStore[key].length;
     const labels={bannerqr:'N×100',personal:'1–30',titulares:'81–89',macros:'M1–M9'};
-    badge.textContent=count>0?`${count} pbm`:labels[key];
+    const customScenes=getCustomScenes();
+    const cs=customScenes.find(s=>s.key===key);
+    const defaultLabel=cs?(cs.prefix||cs.key):labels[key];
+    badge.textContent=count>0?`${count} pbm`:(defaultLabel||key);
     badge.style.color=count>0?'var(--green)':'';
     badge.style.background=count>0?'rgba(34,197,94,.1)':'';
     badge.style.borderColor=count>0?'rgba(34,197,94,.25)':'';
@@ -1459,7 +1682,16 @@ function saveEdit(i){
   else if(currentPage==='titulares'){updates=[{id:'TITULAR Text',val:v('ef_titular')},{id:'Texto de Fondo Text',val:v('ef_fondo')}];f.desc=v('ef_titular');}
   else if(currentPage==='macros'){updates=[{id:'TextLine1 Text',val:v('ef_l1')},{id:'TextLine2 Text',val:v('ef_l2')}];f.desc=`${v('ef_l1')}${v('ef_l2')?' / '+v('ef_l2'):''}`;}
   const scenePaths={bannerqr:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\BANNER2QR.pbx',personal:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\PERSONAL.pbx',titulares:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\LO MASS5.pbx',macros:'I:\\PROJECTS\\TP NOTICIAS 2024\\Scenes\\MACROS2.pbx'};
-  f.xml=buildXML(scenePaths[currentPage],updates);
+  if(!updates.length){
+    // Custom scene
+    const cfg=getSceneCfg();const cs=cfg[currentPage]||{fields:[],path:''};
+    const fields=cs.fields||[];
+    updates=fields.map(field=>({id:field.id,val:(document.getElementById('ef_cust_'+field.key)?.value||'').toUpperCase()}));
+    f.desc=updates[0]?.val||f.name;
+    f.xml=buildXML(cs.path||'',updates);
+  } else {
+    f.xml=buildXML(scenePaths[currentPage]||'',updates);
+  }
   document.querySelectorAll('[data-edit-panel]').forEach(el=>el.remove());
   renderFilesList();showToast(`✓ ${f.name} actualizado`,'ok');syncAfterChange();
 }
