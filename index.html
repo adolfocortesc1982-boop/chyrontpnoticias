@@ -628,12 +628,11 @@ function saveSceneCfg(cfg){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(cfg
 // Leer campos desde XML de archivo .pbx (sección <Replaceables>)
 function parsePbxReplaceables(xmlText){
   const fields=[];
-  // Match <Replaceable Id="..."> blocks
-  const re=/<Replaceable[^>]*\bId="([^"]+)"/gi;
+  // Chyron .pbx uses <Target Id="..."> inside <Replaceables>
+  const re=/<Target[^>]*\bId="([^"]+)"/gi;
   let m;
   while((m=re.exec(xmlText))!==null){
     const rawId=m[1];
-    // Derive a short key from the id
     const key=rawId.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
     fields.push({key,label:rawId,id:rawId});
   }
@@ -1101,7 +1100,10 @@ function renderCustomPage(sceneKey){
         <div class="page-title">${s.icon||'🎬'} ${s.label.toUpperCase()}</div>
         <div class="page-meta">${sceneCfg.path||s.pbxFile||s.key+'.pbx'}</div>
       </div>
-      <div class="scene-badge">${s.pbxFile||s.key+'.pbx'}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="scene-badge">${s.pbxFile||s.key+'.pbx'}</div>
+        ${currentUser?.role==='admin'?`<button class="btn-sm" onclick="if(confirm('¿Eliminar la escena \\'${s.label}\\'?')){cfgDeleteCustomScene('${sceneKey}')}" style="color:var(--red);border-color:rgba(230,57,80,.3);" title="Eliminar esta escena">🗑 Eliminar escena</button>`:''}
+      </div>
     </div>
     <div class="form-block">
       <div class="form-grid ${fields.length===1?'cols1':''}">${inputsHTML}</div>
