@@ -495,7 +495,7 @@ function openAdmin(){
   }
 }
 function closeAdmin(){document.getElementById('adminOverlay').style.display='none';}
-function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass','cfg'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();if(tab==='cfg')renderAdminCfg();}
+function switchAdminTab(tab){adminCurrentTab=tab;['list','new','mypass','cfg'].forEach(t=>{document.getElementById('adminTab-'+t).classList.toggle('active',t===tab);});const c=document.getElementById('adminContent');c.innerHTML='';if(tab==='list')c.innerHTML=renderAdminList();if(tab==='new')c.innerHTML=renderAdminNew();if(tab==='mypass')c.innerHTML=renderAdminMyPass();if(tab==='cfg')renderAdminCfg();}
 
 function renderAdminList(){
   const users=getUsers();const sessions=getSessions();
@@ -1694,6 +1694,17 @@ function saveEdit(i){
   } else {
     f.xml=buildXML(scenePaths[currentPage]||'',updates);
   }
+  // Registrar/actualizar en el reporte con el usuario que editó
+  if(currentPage==='bannerqr'){
+    const nota=parseInt(f.name);const notaNum=isNaN(nota)?f.nota:(Math.floor(nota/100));
+    reporteRegistrar({tipo:'bannerqr',nota:notaNum,archivo:f.name,nombre:v('ef_nombre'),cargo:v('ef_cargo'),tematico:v('ef_tematico'),ubicacion:v('ef_ubicacion'),qr:vs('ef_qr'),usuario:currentUser?.user||'—'}, true);
+  } else if(currentPage==='personal'){
+    reporteRegistrar({tipo:'personal',nota:'personal',archivo:f.name,nombre:v('ef_n1'),cargo:v('ef_c1'),tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'}, true);
+  } else if(currentPage==='titulares'){
+    reporteRegistrar({tipo:'titular',nota:'titulares',archivo:f.name,nombre:v('ef_titular'),cargo:v('ef_fondo')||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'}, true);
+  } else if(currentPage==='macros'){
+    reporteRegistrar({tipo:'macro',nota:'macros',archivo:f.name,nombre:v('ef_l1'),cargo:v('ef_l2')||'—',tematico:'—',ubicacion:'—',qr:'—',usuario:currentUser?.user||'—'}, true);
+  }
   document.querySelectorAll('[data-edit-panel]').forEach(el=>el.remove());
   renderFilesList();showToast(`✓ ${f.name} actualizado`,'ok');syncAfterChange();
 }
@@ -1912,16 +1923,27 @@ function reporteSave(data){
   }
 }
 
-function reporteRegistrar(entry){
+function reporteRegistrar(entry, isEdit){
   const data=reporteLoad();
-  // Avoid duplicates — check archivo+tipo (handles both local and sync)
   var tipoNorm={'titular':'titulares','macro':'macros','titulares':'titulares','macros':'macros','bannerqr':'bannerqr','personal':'personal'};
   var entryTipo=tipoNorm[entry.tipo]||entry.tipo;
-  if(data.some(function(r){
+  // Buscar si ya existe un registro para este archivo+tipo
+  var existingIdx=data.findIndex(function(r){
     var rTipo=tipoNorm[r.tipo]||r.tipo;
     return r.archivo===entry.archivo&&rTipo===entryTipo;
-  })) return;
+  });
   const now=new Date();
+  if(existingIdx>=0){
+    // Actualizar registro existente con nuevos datos y usuario que editó
+    data[existingIdx]=Object.assign({},data[existingIdx],entry,{
+      fecha:now.toLocaleDateString('es-CO',{year:'numeric',month:'2-digit',day:'2-digit'}),
+      hora:now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      ts:now.getTime()
+    });
+    reporteSave(data);updateReporteBadge();return;
+  }
+  // Si es edición y no existe registro previo, no crear (evitar registros huérfanos)
+  if(isEdit) return;
   const rid=TAB_ID+'_'+now.getTime(); // unique ID per entry
   data.push({
     ...entry,
