@@ -907,17 +907,25 @@ function renderAdminCfg(){
 // Cargar configuración de Firebase al iniciar (si existe)
 function loadSceneCfgFromFirebase(){
   if(!_fbDb)return;
-  _fbDb.ref('tp_scene_cfg').once('value',function(snap){
-    const val=snap.val();
-    if(val){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(val));}
-  });
-  _fbDb.ref('tp_custom_scenes').once('value',function(snap){
-    const val=snap.val();
-    if(val&&Array.isArray(val)){
-      localStorage.setItem(CUSTOM_SCENES_KEY,JSON.stringify(val));
-      val.forEach(s=>{if(!fileStore[s.key])fileStore[s.key]=[];});
-      renderCustomNav();
-    }
+  // Cargar ambas fuentes en paralelo y cruzar los fields
+  _fbDb.ref('tp_scene_cfg').once('value',function(snapCfg){
+    const cfgVal=snapCfg.val();
+    if(cfgVal){localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(cfgVal));}
+    _fbDb.ref('tp_custom_scenes').once('value',function(snap){
+      const val=snap.val();
+      if(val&&Array.isArray(val)){
+        // Si tp_scene_cfg tiene fields para alguna escena, actualizarlos en customScenes
+        const merged=val.map(function(s){
+          if(cfgVal&&cfgVal[s.key]&&cfgVal[s.key].fields&&cfgVal[s.key].fields.length){
+            return Object.assign({},s,{fields:cfgVal[s.key].fields,path:cfgVal[s.key].path||s.path});
+          }
+          return s;
+        });
+        localStorage.setItem(CUSTOM_SCENES_KEY,JSON.stringify(merged));
+        merged.forEach(s=>{if(!fileStore[s.key])fileStore[s.key]=[];});
+        renderCustomNav();
+      }
+    });
   });
 }
 
@@ -1124,20 +1132,32 @@ function renderCustomPage(sceneKey){
     (sceneCfg.fields&&sceneCfg.fields.length?sceneCfg.fields:null)||
     (s.fields&&s.fields.length?s.fields:null)||
     [];
-  // Si no hay campos, intentar recargar desde Firebase y mostrar aviso
+  // Si no hay campos, leer tp_scene_cfg completo desde Firebase y reintentar
   if(!fields.length){
     if(_fbDb){
-      _fbDb.ref('tp_scene_cfg/'+sceneKey).once('value',function(snap){
+      _fbDb.ref('tp_scene_cfg').once('value',function(snap){
         const val=snap.val();
-        if(val&&val.fields&&val.fields.length){
-          const cfg2=getSceneCfg();
-          cfg2[sceneKey]=Object.assign({},cfg2[sceneKey]||{},val);
-          saveSceneCfg(cfg2);
-          // También actualizar en customScenes
+        if(val&&val[sceneKey]&&val[sceneKey].fields&&val[sceneKey].fields.length){
+          // Guardar en localStorage y también en customScenes
+          localStorage.setItem(SCENE_CFG_KEY,JSON.stringify(val));
           const sc=getCustomScenes();
           const idx=sc.findIndex(x=>x.key===sceneKey);
-          if(idx>=0){sc[idx].fields=val.fields;saveCustomScenes(sc);}
-          // Re-renderizar
+          if(idx>=0){sc[idx].fields=val[sceneKey].fields;sc[idx].path=val[sceneKey].path||sc[idx].path;saveCustomScenes(sc);}
+          // Re-renderizar ahora que tenemos los fields
+          const cont=document.getElementById('mainContent');
+          if(cont)cont.innerHTML=renderCustomPage(sceneKey);
+          renderFilesList();
+        }
+      });
+    }
+    // También intentar desde tp_custom_scenes en Firebase
+    if(_fbDb){
+      _fbDb.ref('tp_custom_scenes').once('value',function(snap){
+        const val=snap.val();
+        if(!val||!Array.isArray(val))return;
+        const fbScene=val.find(x=>x.key===sceneKey);
+        if(fbScene&&fbScene.fields&&fbScene.fields.length){
+          localStorage.setItem(CUSTOM_SCENES_KEY,JSON.stringify(val));
           const cont=document.getElementById('mainContent');
           if(cont)cont.innerHTML=renderCustomPage(sceneKey);
           renderFilesList();
