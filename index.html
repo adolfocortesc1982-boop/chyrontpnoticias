@@ -659,12 +659,12 @@ async function loadPbxFile(moduleKey){
     if(pathInput){pathInput.value=detectedPath;}
     // Repopulate fields table
     const cfg=getSceneCfg();
+    if(!cfg[moduleKey])cfg[moduleKey]={label:moduleKey,icon:'🎬',pbxFile:fileName,path:fileName,fields:[]};
     cfg[moduleKey].pbxFile=fileName;
-    // Keep existing path prefix if available, otherwise use filename
-    if(pathInput&&pathInput.value===fileName){
-      // suggest user updates the full path
-    }
     cfg[moduleKey].fields=fields;
+    // Actualizar también el draft en memoria para que cfgSaveCustomScene lo use
+    _cfgDraft[moduleKey]=JSON.parse(JSON.stringify(cfg[moduleKey]));
+    _cfgDraft[moduleKey].fields=fields;
     // Re-render fields section
     renderCfgFields(moduleKey,fields);
     showToast(`✓ ${fields.length} campo(s) detectados desde ${fileName}`,'ok');
@@ -800,30 +800,15 @@ function cfgSaveCustomScene(key){
   cfgEnsureDraft(key);
   const pathVal=document.getElementById('cfg_path_'+key)?.value||'';
   _cfgDraft[key].path=pathVal;
-  // Leer fields directamente del DOM para no depender del draft en memoria
   const cfg=getSceneCfg();
-  const existingFields=(_cfgDraft[key].fields&&_cfgDraft[key].fields.length)
-    ?_cfgDraft[key].fields
-    :(cfg[key]&&cfg[key].fields&&cfg[key].fields.length?cfg[key].fields:[]);
-  // Sincronizar campos desde el DOM (inputs visibles)
-  const domFields=[];
-  let fi=0;
-  while(true){
-    const kEl=document.querySelector(`#cfg_fields_${key} input:nth-child(${fi*4+1})`);
-    if(!kEl)break;
-    const inputs=document.querySelectorAll(`#cfg_fields_${key} > div:nth-child(${fi+1}) input`);
-    if(inputs.length>=3){
-      domFields.push({key:inputs[0].value.trim(),label:inputs[1].value.trim(),id:inputs[2].value.trim()});
-    }
-    fi++;
-    if(fi>50)break;
+  // Usar los fields del draft (actualizados por cfgFieldChange en tiempo real)
+  // Si el draft no tiene fields, usar los del cfg o customScenes
+  if(!_cfgDraft[key].fields||!_cfgDraft[key].fields.length){
+    _cfgDraft[key].fields=(cfg[key]&&cfg[key].fields)||scenes[sIdx].fields||[];
   }
-  const finalFields=domFields.length?domFields:existingFields;
-  _cfgDraft[key].fields=finalFields;
   cfg[key]=JSON.parse(JSON.stringify(_cfgDraft[key]));
-  // Sincronizar al array de escenas personalizadas
   scenes[sIdx].path=pathVal;
-  scenes[sIdx].fields=finalFields;
+  scenes[sIdx].fields=cfg[key].fields;
   scenes[sIdx].label=cfg[key].label||scenes[sIdx].label;
   saveSceneCfg(cfg);
   saveCustomScenes(scenes);
@@ -1212,6 +1197,12 @@ function renderCustomPage(sceneKey){
       <div class="form-grid ${fields.length===1?'cols1':''}">${inputsHTML}</div>
     </div>
     <div class="actions-bar">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--s2);border:1.5px solid var(--border);border-radius:9px;padding:6px 12px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;"># ID</span>
+        <input type="number" id="cust_num_${sceneKey}" min="1" max="999" placeholder="Auto"
+          style="width:64px;background:transparent;border:none;outline:none;color:var(--accent2);font-family:'DM Mono';font-size:13px;font-weight:700;-moz-appearance:textfield;"
+          title="Número del archivo (dejar vacío para automático)">
+      </div>
       <button class="btn-gen" onclick="generateCustom('${sceneKey}')">⚡ Generar .pbm</button>
       <button class="btn-clear" onclick="clearCustom('${sceneKey}')">✕ Limpiar</button>
     </div>
@@ -1238,12 +1229,21 @@ function generateCustom(sceneKey){
   const draft=customDrafts[sceneKey]||{};
   const firstField=fields[0];
   if(firstField&&!draft[firstField.key]){showToast(`⚠ Ingresa al menos ${firstField.label}`,'warn');return;}
-  // Numbering
+  // Numbering — usar número manual si está definido, si no buscar el próximo libre
   if(!fileStore[sceneKey])fileStore[sceneKey]=[];
   const prefix=s.prefix||sceneKey.toUpperCase();
-  const usedNums=new Set(fileStore[sceneKey].map(f=>{const mx=f.name.match(/(\d+)\.pbm$/);return mx?parseInt(mx[1]):0;}));
-  let num=1;while(usedNums.has(num))num++;
-  const fileName=`${prefix}_${num}.pbm`;
+  const manualNumEl=document.getElementById('cust_num_'+sceneKey);
+  const manualNum=manualNumEl&&manualNumEl.value.trim()?parseInt(manualNumEl.value.trim()):null;
+  const usedNums=new Set(fileStore[sceneKey].map(f=>{const mx=f.name.match(/^(\d+)\.pbm$/);return mx?parseInt(mx[1]):0;}));
+  let num;
+  if(manualNum&&manualNum>0){
+    num=manualNum;
+    const existIdx=fileStore[sceneKey].findIndex(f=>f.name===`${num}.pbm`);
+    if(existIdx>=0)fileStore[sceneKey].splice(existIdx,1);
+  } else {
+    num=1;while(usedNums.has(num))num++;
+  }
+  const fileName=`${num}.pbm`;
   const updates=fields.map(f=>({id:f.id,val:draft[f.key]||''}));
   const desc=draft[firstField?.key]||fileName;
   const entry={name:fileName,xml:buildXML(path,updates),desc};
