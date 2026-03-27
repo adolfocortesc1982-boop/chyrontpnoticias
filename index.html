@@ -1228,7 +1228,8 @@ function generateCustom(sceneKey){
   });
   const draft=customDrafts[sceneKey]||{};
   const firstField=fields[0];
-  if(firstField&&!draft[firstField.key]){showToast(`⚠ Ingresa al menos ${firstField.label}`,'warn');return;}
+  const hasAnyValue=fields.some(f=>draft[f.key]&&draft[f.key].trim());
+  if(!hasAnyValue){showToast(`⚠ Ingresa al menos un campo`,'warn');return;}
   // Numbering — usar número manual si está definido, si no buscar el próximo libre
   if(!fileStore[sceneKey])fileStore[sceneKey]=[];
   const prefix=s.prefix||sceneKey.toUpperCase();
@@ -1239,7 +1240,7 @@ function generateCustom(sceneKey){
   if(manualNum&&manualNum>0){
     num=manualNum;
     const existIdx=fileStore[sceneKey].findIndex(f=>f.name===`${num}.pbm`);
-    if(existIdx>=0)fileStore[sceneKey].splice(existIdx,1);
+    if(existIdx>=0){showToast(`⚠ El archivo ${num}.pbm ya existe en esta escena`,'warn');return;}
   } else {
     num=1;while(usedNums.has(num))num++;
   }
