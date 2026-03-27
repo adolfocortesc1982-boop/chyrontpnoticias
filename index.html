@@ -1722,6 +1722,17 @@ function toggleEdit(i){
   else if(currentPage==='personal'){fieldsHTML=`<div class="edit-grid"><div class="edit-field"><div class="f-label">Nombre</div><input class="f-input" id="ef_n1" value="${getVal('Text 1 Nombre Text')}"></div><div class="edit-field"><div class="f-label">Cargo</div><input class="f-input" id="ef_c1" value="${getVal('Text 2 Cargo Text')}"></div></div>`;}
   else if(currentPage==='titulares'){fieldsHTML=`<div class="edit-grid"><div class="edit-field full"><div class="f-label">Titular</div><input class="f-input" id="ef_titular" value="${getVal('TITULAR Text')}"></div><div class="edit-field"><div class="f-label">Texto de Fondo</div><input class="f-input" id="ef_fondo" value="${getVal('Texto de Fondo Text')}"></div></div>`;}
   else if(currentPage==='macros'){fieldsHTML=`<div class="edit-grid"><div class="edit-field full"><div class="f-label">Línea 1</div><input class="f-input" id="ef_l1" value="${getVal('TextLine1 Text')}"></div><div class="edit-field full"><div class="f-label">Línea 2</div><input class="f-input" id="ef_l2" value="${getVal('TextLine2 Text')}"></div></div>`;}
+  else {
+    // Escena personalizada
+    const cfg=getSceneCfg();
+    const cs=cfg[currentPage]||{};
+    const csFields=cs.fields||[];
+    if(csFields.length){
+      fieldsHTML=`<div class="edit-grid ${csFields.length===1?'cols1':''}">`+
+        csFields.map(field=>`<div class="edit-field ${csFields.length===1?'full':''}"><div class="f-label">${field.label}</div><input class="f-input" id="ef_cust_${field.key}" value="${getVal(field.id)}"></div>`).join('')+
+      `</div>`;
+    }
+  }
 
   const panel=document.createElement('div');
   panel.dataset.editPanel=String(i);panel.className='edit-panel';
