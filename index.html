@@ -828,7 +828,7 @@ function renderAdminCfg(){
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:18px;">${s.icon||'🎬'}</span>
               <div>
-                <div style="font-weight:700;font-size:13px;color:var(--text);">${s.label}</div>
+                <div style="font-weight:700;font-size:13px;color:var(--text);">${s.label||key}</div>
                 <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${s.pbxFile||key}</div>
               </div>
             </div>
@@ -844,7 +844,7 @@ function renderAdminCfg(){
           <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
             <div>
               <div class="cfg-label">Ruta completa del archivo .pbx</div>
-              <input class="cfg-input" id="cfg_path_${key}" value="${s.path}" placeholder="Ej: I:\\PROJECTS\\...\\BANNER2QR.pbx" style="margin:0;width:100%;font-size:11px;">
+              <input class="cfg-input" id="cfg_path_${key}" value="${(s.path||'').replace(/"/g,'&quot;')}" placeholder="Ej: I:\\PROJECTS\\...\\BANNER2QR.pbx" style="margin:0;width:100%;font-size:11px;">
             </div>
             <div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -858,7 +858,7 @@ function renderAdminCfg(){
                 <div></div>
               </div>
               <div id="cfg_fields_${key}">
-                ${s.fields.map((f,fi)=>`
+                ${(s.fields||[]).map((f,fi)=>`
                   <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px;">
                     <input class="cfg-input" style="margin:0" value="${f.key}" oninput="cfgFieldChange('${key}',${fi},'key',this.value)">
                     <input class="cfg-input" style="margin:0" value="${f.label}" oninput="cfgFieldChange('${key}',${fi},'label',this.value)">
