@@ -1091,7 +1091,56 @@ function renderCustomPage(sceneKey){
   if(!s)return`<div class="empty-state"><div class="empty-ico">⚠️</div><p>Escena no encontrada.</p></div>`;
   const cfg=getSceneCfg();
   const sceneCfg=cfg[sceneKey]||s;
-  const fields=sceneCfg.fields||s.fields||[];
+  // Buscar fields en todas las fuentes posibles
+  const fields=
+    (sceneCfg.fields&&sceneCfg.fields.length?sceneCfg.fields:null)||
+    (s.fields&&s.fields.length?s.fields:null)||
+    [];
+  // Si no hay campos, intentar recargar desde Firebase y mostrar aviso
+  if(!fields.length){
+    if(_fbDb){
+      _fbDb.ref('tp_scene_cfg/'+sceneKey).once('value',function(snap){
+        const val=snap.val();
+        if(val&&val.fields&&val.fields.length){
+          const cfg2=getSceneCfg();
+          cfg2[sceneKey]=Object.assign({},cfg2[sceneKey]||{},val);
+          saveSceneCfg(cfg2);
+          // También actualizar en customScenes
+          const sc=getCustomScenes();
+          const idx=sc.findIndex(x=>x.key===sceneKey);
+          if(idx>=0){sc[idx].fields=val.fields;saveCustomScenes(sc);}
+          // Re-renderizar
+          const cont=document.getElementById('mainContent');
+          if(cont)cont.innerHTML=renderCustomPage(sceneKey);
+          renderFilesList();
+        }
+      });
+    }
+    return`
+    <div class="page-header">
+      <div>
+        <div class="page-title">${s.icon||'🎬'} ${s.label.toUpperCase()}</div>
+        <div class="page-meta">${sceneCfg.path||s.pbxFile||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="scene-badge">${s.pbxFile||s.key+'.pbx'}</div>
+        ${currentUser?.role==='admin'?`<button class="btn-sm" onclick="if(confirm('¿Eliminar la escena \\'${s.label}\\'?')){cfgDeleteCustomScene('${sceneKey}')}" style="color:var(--red);border-color:rgba(230,57,80,.3);">🗑 Eliminar escena</button>`:''}
+      </div>
+    </div>
+    <div style="padding:24px;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.25);border-radius:10px;display:flex;align-items:center;gap:16px;">
+      <span style="font-size:28px;">⚙️</span>
+      <div>
+        <div style="font-weight:700;color:var(--tp-yellow);margin-bottom:4px;">Esta escena no tiene campos configurados</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Ve a <strong>Usuarios → ⚙️ Configuración</strong>, abre esta escena y carga el archivo <strong>.pbx</strong> para detectar los campos automáticamente.</div>
+        ${currentUser?.role==='admin'?`<button class="btn-gen" style="padding:8px 18px;font-size:12px;" onclick="openAdmin();setTimeout(()=>switchAdminTab('cfg'),200)">⚙️ Ir a Configuración</button>`:'<div style="font-size:11px;color:var(--text3);">Pídele al administrador que configure los campos de esta escena.</div>'}
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="files-section">
+      <div class="files-hdr"><div class="section-lbl">Archivos Generados</div></div>
+      <div id="filesList"><div class="empty-state"><div class="empty-ico">📄</div><p>Los archivos .pbm aparecerán aquí.</p></div></div>
+    </div>`;
+  }
   const draft=getCustomDraft(sceneKey,fields);
   const inputsHTML=fields.map(f=>`
     <div class="form-group ${fields.length===1?'full':''}">
