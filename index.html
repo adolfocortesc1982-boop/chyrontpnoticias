@@ -686,7 +686,16 @@ function renderCfgFields(moduleKey, fields){
 // Live-edit helpers — operate on a temp in-memory object per render cycle
 const _cfgDraft={};
 function cfgEnsureDraft(moduleKey){
-  if(!_cfgDraft[moduleKey]){const cfg=getSceneCfg();_cfgDraft[moduleKey]=JSON.parse(JSON.stringify(cfg[moduleKey]));}
+  if(!_cfgDraft[moduleKey]){
+    const cfg=getSceneCfg();
+    let base=cfg[moduleKey]?JSON.parse(JSON.stringify(cfg[moduleKey])):{fields:[],path:'',label:moduleKey,icon:'🎬',pbxFile:''};
+    // Si no tiene fields, buscar en customScenes
+    if(!base.fields||!base.fields.length){
+      const sc=getCustomScenes().find(x=>x.key===moduleKey);
+      if(sc&&sc.fields&&sc.fields.length)base.fields=JSON.parse(JSON.stringify(sc.fields));
+    }
+    _cfgDraft[moduleKey]=base;
+  }
 }
 function cfgFieldChange(moduleKey,fi,prop,val){cfgEnsureDraft(moduleKey);_cfgDraft[moduleKey].fields[fi][prop]=val;}
 function cfgRemoveField(moduleKey,fi){
@@ -791,11 +800,30 @@ function cfgSaveCustomScene(key){
   cfgEnsureDraft(key);
   const pathVal=document.getElementById('cfg_path_'+key)?.value||'';
   _cfgDraft[key].path=pathVal;
+  // Leer fields directamente del DOM para no depender del draft en memoria
   const cfg=getSceneCfg();
+  const existingFields=(_cfgDraft[key].fields&&_cfgDraft[key].fields.length)
+    ?_cfgDraft[key].fields
+    :(cfg[key]&&cfg[key].fields&&cfg[key].fields.length?cfg[key].fields:[]);
+  // Sincronizar campos desde el DOM (inputs visibles)
+  const domFields=[];
+  let fi=0;
+  while(true){
+    const kEl=document.querySelector(`#cfg_fields_${key} input:nth-child(${fi*4+1})`);
+    if(!kEl)break;
+    const inputs=document.querySelectorAll(`#cfg_fields_${key} > div:nth-child(${fi+1}) input`);
+    if(inputs.length>=3){
+      domFields.push({key:inputs[0].value.trim(),label:inputs[1].value.trim(),id:inputs[2].value.trim()});
+    }
+    fi++;
+    if(fi>50)break;
+  }
+  const finalFields=domFields.length?domFields:existingFields;
+  _cfgDraft[key].fields=finalFields;
   cfg[key]=JSON.parse(JSON.stringify(_cfgDraft[key]));
-  // Sync back to custom scenes list
+  // Sincronizar al array de escenas personalizadas
   scenes[sIdx].path=pathVal;
-  scenes[sIdx].fields=cfg[key].fields;
+  scenes[sIdx].fields=finalFields;
   scenes[sIdx].label=cfg[key].label||scenes[sIdx].label;
   saveSceneCfg(cfg);
   saveCustomScenes(scenes);
