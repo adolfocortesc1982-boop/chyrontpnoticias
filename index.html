@@ -807,73 +807,79 @@ function cfgSaveCustomScene(key){
 function renderAdminCfg(){
   const c=document.getElementById('adminContent');
   if(!c)return;
-  const cfg=getSceneCfg();
-  // Merge custom scenes into cfg if not already there
-  getCustomScenes().forEach(s=>{if(!cfg[s.key])cfg[s.key]=s;});
+  // Helper para escapar valores en atributos HTML
+  function hesc(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  let cfg;
+  try{cfg=getSceneCfg();}catch(e){c.innerHTML='<div class="empty-state"><p>Error cargando configuración.</p></div>';return;}
+  // Merge custom scenes
+  try{getCustomScenes().forEach(s=>{if(!cfg[s.key])cfg[s.key]=s;});}catch(e){}
   const modules=Object.keys(cfg);
-  c.innerHTML=`
-    <div style="display:flex;flex-direction:column;gap:18px;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
-        <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(0,157,181,.06);border:1px solid rgba(0,157,181,.18);border-radius:8px;flex:1;">
-          <strong style="color:var(--accent2);">📂 Cómo usar:</strong> Haz clic en <em>📂 Cargar .pbx</em> en cada módulo para detectar campos automáticamente.
-          Para agregar una escena nueva, usa <em>＋ Nueva escena</em>.
-        </div>
-        <button class="btn-gen" style="padding:9px 18px;font-size:12px;white-space:nowrap;" onclick="cfgAddNewScene()">＋ Nueva escena</button>
-      </div>
-      ${modules.map(key=>{
-        const s=cfg[key];
-        const isCustom=key.startsWith('custom_');
-        return`<div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s3);">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:18px;">${s.icon||'🎬'}</span>
-              <div>
-                <div style="font-weight:700;font-size:13px;color:var(--text);">${s.label||key}</div>
-                <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${s.pbxFile||key}</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:7px;">
-              <button class="btn-sm" onclick="loadPbxFile('${key}')" title="Cargar archivo .pbx y detectar campos automáticamente">📂 Cargar .pbx</button>
-              ${isCustom
-                ?`<button class="btn-sm" onclick="cfgSaveCustomScene('${key}')" style="color:var(--green);border-color:rgba(92,184,92,.3);">✓ Guardar</button>
-                   <button class="btn-sm" onclick="cfgDeleteCustomScene('${key}')" style="color:var(--red);border-color:rgba(230,57,80,.3);" title="Eliminar escena">🗑</button>`
-                :`<button class="btn-sm" onclick="cfgResetModule('${key}')" style="color:var(--text3);">↺ Restablecer</button>`
-              }
-            </div>
-          </div>
-          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <div class="cfg-label">Ruta completa del archivo .pbx</div>
-              <input class="cfg-input" id="cfg_path_${key}" value="${(s.path||'').replace(/"/g,'&quot;')}" placeholder="Ej: I:\\PROJECTS\\...\\BANNER2QR.pbx" style="margin:0;width:100%;font-size:11px;">
-            </div>
-            <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                <div class="cfg-label" style="margin:0;">Campos de la escena</div>
-                <button class="btn-add" onclick="cfgAddField('${key}')" style="font-size:11px;padding:4px 11px;">＋ Agregar campo</button>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:6px;padding:0 2px;">
-                <div class="cfg-label" style="margin:0;">Clave interna</div>
-                <div class="cfg-label" style="margin:0;">Etiqueta visible</div>
-                <div class="cfg-label" style="margin:0;">ID en Chyron</div>
-                <div></div>
-              </div>
-              <div id="cfg_fields_${key}">
-                ${(s.fields||[]).map((f,fi)=>`
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px;">
-                    <input class="cfg-input" style="margin:0" value="${f.key}" oninput="cfgFieldChange('${key}',${fi},'key',this.value)">
-                    <input class="cfg-input" style="margin:0" value="${f.label}" oninput="cfgFieldChange('${key}',${fi},'label',this.value)">
-                    <input class="cfg-input" style="margin:0;font-size:10px;" value="${f.id}" oninput="cfgFieldChange('${key}',${fi},'id',this.value)">
-                    <button class="btn-rm" onclick="cfgRemoveField('${key}',${fi})" title="Eliminar campo">✕</button>
-                  </div>`).join('')}
-              </div>
-            </div>
-            ${!isCustom?`<div style="display:flex;justify-content:flex-end;">
-              <button class="btn-gen" style="padding:9px 22px;font-size:12px;" onclick="cfgSaveModule('${key}')">✓ Guardar</button>
-            </div>`:''}
-          </div>
+  let html='<div style="display:flex;flex-direction:column;gap:18px;">';
+  html+=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+    <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(0,157,181,.06);border:1px solid rgba(0,157,181,.18);border-radius:8px;flex:1;">
+      <strong style="color:var(--accent2);">📂 Cómo usar:</strong> Haz clic en <em>📂 Cargar .pbx</em> en cada módulo para detectar campos automáticamente.
+      Para agregar una escena nueva, usa <em>＋ Nueva escena</em>.
+    </div>
+    <button class="btn-gen" style="padding:9px 18px;font-size:12px;white-space:nowrap;" onclick="cfgAddNewScene()">＋ Nueva escena</button>
+  </div>`;
+  modules.forEach(function(key){
+    try{
+      const s=cfg[key]||{};
+      const isCustom=key.startsWith('custom_');
+      const fields=Array.isArray(s.fields)?s.fields:[];
+      let fieldsHTML='';
+      fields.forEach(function(f,fi){
+        fieldsHTML+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:6px;">
+          <input class="cfg-input" style="margin:0" value="${hesc(f.key)}" oninput="cfgFieldChange('${key}',${fi},'key',this.value)">
+          <input class="cfg-input" style="margin:0" value="${hesc(f.label)}" oninput="cfgFieldChange('${key}',${fi},'label',this.value)">
+          <input class="cfg-input" style="margin:0;font-size:10px;" value="${hesc(f.id)}" oninput="cfgFieldChange('${key}',${fi},'id',this.value)">
+          <button class="btn-rm" onclick="cfgRemoveField('${key}',${fi})" title="Eliminar campo">✕</button>
         </div>`;
-      }).join('')}
-    </div>`;
+      });
+      const saveBtn=isCustom
+        ?`<button class="btn-sm" onclick="cfgSaveCustomScene('${key}')" style="color:var(--green);border-color:rgba(92,184,92,.3);">✓ Guardar</button>
+           <button class="btn-sm" onclick="cfgDeleteCustomScene('${key}')" style="color:var(--red);border-color:rgba(230,57,80,.3);" title="Eliminar escena">🗑</button>`
+        :`<button class="btn-sm" onclick="cfgResetModule('${key}')" style="color:var(--text3);">↺ Restablecer</button>`;
+      const bottomBtn=!isCustom?`<div style="display:flex;justify-content:flex-end;"><button class="btn-gen" style="padding:9px 22px;font-size:12px;" onclick="cfgSaveModule('${key}')">✓ Guardar</button></div>`:'';
+      html+=`<div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--s3);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">${hesc(s.icon||'🎬')}</span>
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--text);">${hesc(s.label||key)}</div>
+              <div style="font-size:10px;color:var(--text3);font-family:'DM Mono';">${hesc(s.pbxFile||key)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:7px;">
+            <button class="btn-sm" onclick="loadPbxFile('${key}')" title="Cargar .pbx">📂 Cargar .pbx</button>
+            ${saveBtn}
+          </div>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <div class="cfg-label">Ruta completa del archivo .pbx</div>
+            <input class="cfg-input" id="cfg_path_${key}" value="${hesc(s.path||'')}" placeholder="Ej: I:\\PROJECTS\\...\\BANNER2QR.pbx" style="margin:0;width:100%;font-size:11px;">
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div class="cfg-label" style="margin:0;">Campos de la escena</div>
+              <button class="btn-add" onclick="cfgAddField('${key}')" style="font-size:11px;padding:4px 11px;">＋ Agregar campo</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:6px;padding:0 2px;">
+              <div class="cfg-label" style="margin:0;">Clave interna</div>
+              <div class="cfg-label" style="margin:0;">Etiqueta visible</div>
+              <div class="cfg-label" style="margin:0;">ID en Chyron</div>
+              <div></div>
+            </div>
+            <div id="cfg_fields_${key}">${fieldsHTML}</div>
+          </div>
+          ${bottomBtn}
+        </div>
+      </div>`;
+    }catch(e){console.warn('Error rendering cfg module',key,e);}
+  });
+  html+='</div>';
+  c.innerHTML=html;
 }
 
 // Cargar configuración de Firebase al iniciar (si existe)
