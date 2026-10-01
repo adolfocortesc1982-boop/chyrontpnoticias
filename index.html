@@ -426,8 +426,24 @@ function doLogin(){
   const errEl=document.getElementById('loginError');
   errEl.style.display='none';
   const users=getUsers();
-  const found=users.find(x=>x.user===u&&x.pass===p);
-  if(!found){errEl.textContent='Usuario o contraseña incorrectos';errEl.style.display='block';document.getElementById('loginPass').value='';return;}
+  let found=users.find(x=>x.user===u&&x.pass===p);
+  if(!found && _fbDb && !window._loginRetry){
+    // No está en este navegador: consultar usuarios directamente en Firebase y reintentar
+    errEl.textContent='Verificando usuario en la nube...';errEl.style.color='var(--text)';errEl.style.display='block';
+    let done=false;
+    const fail=function(){if(done)return;done=true;errEl.style.color='var(--red)';errEl.textContent='Usuario o contraseña incorrectos (o sin conexión a la nube)';document.getElementById('loginPass').value='';};
+    const t=setTimeout(fail,8000);
+    _fbDb.ref('tp_users').once('value').then(function(snap){
+      if(done)return; clearTimeout(t);
+      const data=snap.val();
+      if(data&&Array.isArray(data)){_usersCache=data;localStorage.setItem('tp_users',JSON.stringify(data));}
+      const f2=(_usersCache||[]).find(x=>x.user===u&&x.pass===p);
+      if(f2){done=true;errEl.style.color='var(--red)';errEl.style.display='none';window._loginRetry=true;try{doLogin();}finally{window._loginRetry=false;}}
+      else fail();
+    }).catch(function(){clearTimeout(t);fail();});
+    return;
+  }
+  if(!found){errEl.style.color='var(--red)';errEl.textContent='Usuario o contraseña incorrectos';errEl.style.display='block';document.getElementById('loginPass').value='';return;}
   if(isSessionTaken(u)){
     if(_fbDb){
       _fbDb.ref('tp_sessions/'+u).once('value',function(snap){
